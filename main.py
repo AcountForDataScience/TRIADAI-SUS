@@ -371,7 +371,7 @@ def Monte_Carlo_Compare_COA_fixed_keys(
         key=lambda name: (results[name]["P90"], results[name]["Critical_%"])
     )
 
-    recommendation = f"Suggestion: **{best}** (minimal P90, and\/or lesser Critical tail)."
+    recommendation = f"Suggestion: **{best}** (minimal P90, and/or lesser Critical tail)."
 
     return results, recommendation
 
