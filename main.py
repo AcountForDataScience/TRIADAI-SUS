@@ -685,7 +685,7 @@ from telebot.formatting import escape_markdown
 ### quick API ###
 
 #--------- API KEY ---------#
-bot_token = ""
+bot_token = os.getenv('BOT_TOKEN')
 
 # #exception debug
 # class MyExceptionHandler(telebot.ExceptionHandler):
