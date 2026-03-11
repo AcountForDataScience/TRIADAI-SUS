@@ -1022,6 +1022,7 @@ def simulation_p1_compare_coa(message):
       noise_ic=0.05, noise_v=0.05, noise_time=1.0
   )
 
+  IC_key, V_key, TP_key = simulation_parameters[user_id]["IC"], simulation_parameters[user_id]["VL"], simulation_parameters[user_id]["TP"]
   message_text = f"Evaluating the \"{strategic_direction_name[user_id]}\" direction: \n{format_coa_message((IC_key, V_key, TP_key), coa_results, recommendation)}"
 
   # print(message_text)
@@ -1092,6 +1093,7 @@ def simulation_p1_win_probability(message):
       noise_ic=0.05, noise_v=0.05, noise_time=1.0
   )
 
+  IC_key, V_key, TP_key = simulation_parameters[user_id]["IC"], simulation_parameters[user_id]["VL"], simulation_parameters[user_id]["TP"]
   print("Scenario:", IC_key, V_key, TP_key)
   print(coa_wp)
   print(rec)
