@@ -6,18 +6,16 @@ import csv
 from datetime import datetime
 import pandas as pd
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.ensemble import RandomForestRegressor
 import math
+import random
+import statistics
 
 import telebot
 from telebot import types
 from telebot.formatting import escape_markdown
 
 # @title
-import random
+
 
 ## Достовірність розвідданих
 Intelligence_Confidence_dic = {
