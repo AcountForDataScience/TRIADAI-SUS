@@ -18,7 +18,7 @@ from telebot.formatting import escape_markdown
 
 # @title
 
-if os.getenv('RENDER') == "True"
+if os.getenv('RENDER') == "True":
     print("Running on Render")
 
 ## Достовірність розвідданих
