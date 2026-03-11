@@ -1181,19 +1181,5 @@ def handle_AR_summary(call):
 
 ### START BOT
 
-# try:
-#   print("Starting bot...")
-#   bot.polling(non_stop=True, restart_on_change = True)
-# except Exception:
-#   print(f"<Error>: {Exception}")
-# finally:
-#   print("clean up polling")
-#   bot.stop_polling()
-
-# print("<info>: Bot poll loop over")
-
-#print("<info>: Bot is listening")
-#bot.infinity_polling()
-
-# bot.polling(non_stop = True)
-# bot.infinity_polling(restart_on_change=True)
+print("<info>: Bot is listening")
+bot.infinity_polling()
