@@ -1,15 +1,17 @@
-import telebot
-from telebot import types
-import numpy as np
+### imports
+# some basic utils
 import os
 import csv
 from datetime import datetime
-import pandas as pd
 
+#data and calculations - mostly unused here
+# import numpy as np
+# import pandas as pd
 import math
 import random
 import statistics
 
+#telebot necessities
 import telebot
 from telebot import types
 from telebot.formatting import escape_markdown
@@ -77,10 +79,6 @@ def get_DRI_level(Decision_Risk_Index):
     else:
         return "Critical state"
 print(get_DRI_level(Decision_Risk_Index))
-
-
-import random
-import statistics
 
 # -------------------------
 # 1) Сценарій (одна комбінація)
@@ -680,9 +678,9 @@ def build_ar_summary_short(
 
     return [line_top, line_center, line_warn, line_bottom]
 
-import telebot
-from telebot import types
-from telebot.formatting import escape_markdown
+# import telebot
+# from telebot import types
+# from telebot.formatting import escape_markdown
 
 ### quick API ###
 
