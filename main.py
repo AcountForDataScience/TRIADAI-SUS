@@ -16,6 +16,8 @@ from telebot.formatting import escape_markdown
 
 # @title
 
+if os.getenv('RENDER') == "True"
+    print("Running on Render")
 
 ## Достовірність розвідданих
 Intelligence_Confidence_dic = {
@@ -685,6 +687,8 @@ from telebot.formatting import escape_markdown
 ### quick API ###
 
 #--------- API KEY ---------#
+print("acquiring tokens")
+print(os.getenv('Test_env'))
 bot_token = os.getenv('BOT_TOKEN')
 
 # #exception debug
