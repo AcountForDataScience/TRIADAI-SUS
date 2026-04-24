@@ -2,24 +2,115 @@
 # some basic utils
 import os
 import csv
-from datetime import datetime
+import datetime
 
 #data and calculations - mostly unused here
 # import numpy as np
-# import pandas as pd
+import pandas as pd
 import math
 import random
 import statistics
+from enum import Enum
 
 #telebot necessities
 import telebot
 from telebot import types
+from telebot.util import quick_markup, generate_random_token
 from telebot.formatting import escape_markdown
 
 # @title
 
 if os.getenv('RENDER') == "True":
     print("Running on Render")
+else:
+    from dotenv import load_dotenv
+    load_dotenv()
+# changing dictionaries to Enums
+
+## Достовірність розвідданих
+class Intelligence_Confidence(Enum):
+    # Defining the UPPER bound for each class
+    HIGH    = (0.9,'90%')
+    MEDIUM  = (0.5,'50%')
+    LOW     = (0.2,'20%')
+
+    def __init__(self, numeric_val, display_text):
+      self._value_ = numeric_val  # This keeps intrinsic .value as a float
+      self.display_name = display_text # And we still get pretty display name
+
+    #classmethod adds support for intermediate risk levels.
+    @classmethod
+    def classify(cls, score: float):
+        """Maps a float (0.0 - 1.0) to a RiskLevel."""
+        for level in cls:
+            if score <= level.value:
+                return level
+        return cls.HIGH  # Fallback for 1.0+
+
+## Невизначеність / шум
+class Volatility(Enum):
+    # Defining the UPPER bound for each class
+    HIGH    = (0.9,'High')
+    MEDIUM  = (0.6,'Medium')
+    LOW     = (0.3,'Low')
+
+    def __init__(self, numeric_val, display_text):
+      self._value_ = numeric_val  # This keeps intrinsic .value as a float
+      self.display_name = display_text # And we still get pretty display name
+
+    #classmethod adds support for intermediate risk levels.
+    @classmethod
+    def classify(cls, score: float):
+        """Maps a float (0.0 - 1.0) to a RiskLevel."""
+        for level in cls:
+            if score <= level.value:
+                return level
+        return cls.HIGH  # Fallback for 1.0+
+
+## Максимальний горизонт планування
+Max_Planning_Time = 48
+
+## Часовий тиск
+class Time_Pressure(Enum):
+    # Defining the UPPER bound for each class
+    STRATEGIC   = (48,  'Strategic')
+    OPERATIONAL = (6,   'Operational')
+    CRISIS      = (0.5, 'Crisis')
+
+    def __init__(self, numeric_val, display_text):
+      self._value_ = numeric_val  # This keeps intrinsic .value as a float
+      self.display_name = display_text # And we still get pretty display name
+
+    #classmethod adds support for intermediate risk levels.
+    @classmethod
+    def classify(cls, score: float):
+        """Maps a float (0.0 - 48) to a RiskLevel."""
+        for level in cls:
+            if score <= level.value:
+                return level
+        return cls.STRATEGIC  # Fallback for values over 48
+
+## Індекс ризику
+class Decision_Risk_Index(Enum):
+    # Defining the UPPER bound for each class
+    CONTROLlED    = (0.3, 'Controlled situation')
+    RISKY         = (0.6, 'Maneuver risk')
+    CRISIS        = (0.8, 'Crisis mode')
+    CRITICAL      = (1.0, 'Critical state')
+
+    def __init__(self, numeric_val, display_text):
+      self._value_ = numeric_val  # This keeps intrinsic .value as a float
+      self.display_name = display_text # And we still get pretty display name
+
+    #classmethod adds support for intermediate risk levels.
+    @classmethod
+    def classify(cls, score: float):
+        """Maps a float (0.0 - 1.0) to a RiskLevel."""
+        for level in cls:
+            if score <= level.value:
+                return level
+        return cls.CRITICAL  # Fallback for 1.0+
+    
 
 ## Достовірність розвідданих
 Intelligence_Confidence_dic = {
@@ -44,6 +135,48 @@ Time_Pressure_dic = {
     "Operational level": 6,
     "Crisis decision": 0.5
 }
+
+#enum shuffling
+def Shuffling_IC_V_TP(IC_Enum, V_Enum, TP_Enum):
+    # Enums don't use .keys(), you just cast the class to a list
+    IC_member = random.choice(list(IC_Enum))
+    V_member = random.choice(list(V_Enum))
+    TP_member = random.choice(list(TP_Enum))
+
+    return IC_member, V_member, TP_member
+
+Intelligence_Confidence_key, Volatility_key, Time_Pressure_key = Shuffling_IC_V_TP(Intelligence_Confidence, Volatility, Time_Pressure)
+
+print(Intelligence_Confidence_key, Volatility_key, Time_Pressure_key)
+print(Intelligence_Confidence_key.name, Volatility_key.name, Time_Pressure_key.name)
+
+IC = Intelligence_Confidence_key.value
+V = Volatility_key.value
+available_time = Time_Pressure_key.value
+TP = 1 - (available_time / Max_Planning_Time)
+
+##w1, w2, w3 — ваги (наприклад по 0.33)
+w1, w2, w3 = 0.33, 0.33, 0.33
+# Decision_Risk_Index = (1 - IC) * w1 + V * w2 + TP * w3
+
+DRI = (1 - IC) * w1 + V * w2 + TP * w3
+print('Decision_Risk_Index: ' + str(DRI))
+
+# print('Decision_Risk_Index: ' + str(Decision_Risk_Index))
+
+
+# def get_DRI_level(Decision_Risk_Index):
+#     if Decision_Risk_Index < 0.3:
+#         return "Situation under control"
+#     elif Decision_Risk_Index < 0.6:
+#         return "Maneuver risk"
+#     elif Decision_Risk_Index < 0.8:
+#         return "Crisis mode"
+#     else:
+#         return "Critical state"
+# print(get_DRI_level(Decision_Risk_Index))
+
+print(Decision_Risk_Index.classify(DRI).display_name)
 
 def Shuffling_IC_V_TP(Intelligence_Confidence_dic , Volatility_dic, Time_Pressure_dic):
 
@@ -573,6 +706,7 @@ def Sensitivity_Analysis_DRI_fixed_keys(
     strengths = {"IC": abs(rIC), "V": abs(rV), "TP": abs(rTP)}
     total = sum(strengths.values()) if sum(strengths.values()) != 0 else 1.0
     share = {k: v / total for k, v in strengths.items()}
+    score = {k: v * v / total for k, v in strengths.items()} #share x spearman
 
     dri_sorted = sorted(DRI_list)
 
@@ -585,6 +719,7 @@ def Sensitivity_Analysis_DRI_fixed_keys(
         },
         "spearman_corr": {"IC": rIC, "V": rV, "TP": rTP},
         "influence_share": share,
+        "combined_score": score,
         "DRI_mean": statistics.mean(DRI_list),
         "DRI_p90": dri_sorted[int(0.90 * (n - 1))]
     }
@@ -712,6 +847,28 @@ print("<info>: Telegram bot is initialized")
 simulation_results      = {}
 simulation_parameters   = {}
 strategic_direction_name= {}
+custom_name             = {}
+
+user_locale   = {}
+
+score_table   = {}
+current_score = {}
+# planned usage:
+# current_score[user_id] = [user_id, run_id, direction_name]
+# current_score[user_id].append(score, test, context))
+# score_table[run_id] = current_score[user_id]
+# i.e. :
+# score_table[run_id] = {
+#     user_id,
+#     user_name,
+#     run_id,
+#     name,
+#     date_stamp, #using ISO date
+#     score(value, test name, context[]),
+#     score(value, test name, context[]),
+#     score(value, test name, context[])
+# }
+
 
 ###########
 ## LOGIC ##
@@ -733,22 +890,34 @@ def send_description(message):
   #this is a message with line break support
   #markdown markup, periods must be escaped
   message_text = """
-__*AI/AR\-Driven Strategic Uncertainty & Decision Simulation Framework*__
-Immerse yourself in a realistic game/simulation of decision\-making at the national security level\. Your decisions will shape the fate of operations — from tactical maneuvers to strategic crises\.
-🧠 *Your tools*:
-  *Monte Carlo simulations* compare alternative courses of action:
-    • *COA\-A*: Offensive or Regroup?
-    • *COA\-B*: Stabilization of positions
-    • *COA\-C*: Redistribution of resources
-  *Win Probability* — see the chances of success of each decision in real time
-  *Sensitivity Analysis* — understand which factors most affect the outcome
-  *AR visualization* — get a summary directly on augmented reality glasses
-🎯 *Four test phases*:
-  I\. *Fog of War* — collect intelligence and form a picture of the battle _Work with: GUR, General Staff, Unmanned Systems Forces\._
-  II\. *Multi\-domain operation* — coordinate actions on land, in the air and at sea _Command: Land, Air, Naval Forces\._
-  III\. *Logistics decides everything* — provide troops at a critical moment _Control: Ministry of Defense, General Staff, Joint Forces\._
-  IV\. *Strategic crisis* — make state\-level decisions _Interact with: NSDC, Cabinet of Ministers, Ministry of Defense\._
-Every decision has consequences\. Every phase is a new challenge\. Ready to test your strategic thinking?
+Welcome to the *TRIADAI\\-SUS* Framework
+_AI/AR\-Driven Strategic Uncertainty & Decision Simulation Environment_
+
+*TRIADAI\-SUS* is a strategic wargaming and decision\\-support framework designed to strengthen command thinking and improve military strategic planning under uncertainty\.
+This simulation environment introduces modern Artificial Intelligence methods into the decision\\-making process and demonstrates how data\-driven tools can support commanders at operational and strategic levels\.
+
+🎯 Purpose of the Framework
+TRIADAI\\-SUS is designed for:
+ • Enhancing strategic command thinking during military planning and crisis response
+ • Introducing modern AI algorithms into professional military education
+ • Explaining how AI tools support evidence\\-based decision\\-making in complex and uncertain environments
+ • Demonstrating when to apply specific analytical methods, such as:
+   ○ Monte Carlo simulation — to explore uncertainty
+     and compare alternative courses of action
+   ○ Random Forest models — to forecast
+     operational outcomes and risks
+   ○ Neural Networks — to detect patterns in
+     complex, dynamic environments
+   ○ Sensitivity Analysis — to identify
+     the most influential decision factors
+
+🧠 What You Will Experience
+Within the simulation, participants will:
+ • Evaluate alternative Courses of Action \(COA\)
+ • Observe Win Probability and risk indicators in real time
+ • Understand how uncertainty affects operational success
+ • Learn to interpret AI\\-generated recommendations
+ • Develop structured decision\\-making under time pressure
   """
   # bot.send_message(chat_id, message_text, parse_mode="MarkdownV2", reply_markup = markup)
   bot.edit_message_text(message_text, chat_id, message.id, parse_mode="MarkdownV2", reply_markup = markup)
@@ -771,11 +940,43 @@ def handle_send_main_menu(call):
 # початковий екран
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
-  bot.send_message(message.chat.id, "You've launched the Strategic Uncertainty Simulation bot")
-  # bot.send_message(message.chat.id, f"Your Chat ID is: {message.chat.id}")
-  show_menu(message)
+  # username handling
+  global custom_name
+  user_id = message.chat.id
+  if not custom_name.get(user_id):
+    next = bot.send_message(message.chat.id, "You've launched the Strategic Uncertainty Simulation bot. Please enter your preferred name")
+    bot.register_next_step_handler(next, rename_user)
+  else:
+
+    bot.send_message(message.chat.id, f"You've launched the Strategic Uncertainty Simulation bot, {custom_name[user_id]}")
+
+    # bot.send_message(message.chat.id, f"Your Chat ID is: {message.chat.id}")
+    show_menu(message)
 # || початковий екран
 
+# name or rename user
+@bot.message_handler(commands=["rename"])
+def command_rename(message):
+  global custom_name
+  user_id = message.chat.id
+  if not custom_name.get(user_id):
+    next = bot.send_message(message.chat.id, "Please enter your preferred name:")
+  else:
+    next = bot.send_message(message.chat.id, f"your current name is:{custom_name[user_id]}. Enter a new name:")
+  bot.register_next_step_handler(next, rename_user)
+
+def rename_user(message):
+  global custom_name
+
+  markup = types.InlineKeyboardMarkup()
+  btn_rename = types.InlineKeyboardButton("Rename direction", callback_data="init_rename", style="danger")
+  btn_start = types.InlineKeyboardButton("🚀Start scenario", callback_data="start_simulation",style="success")
+  markup.add(btn_start, btn_rename)
+
+  custom_name[message.chat.id] = message.text
+  # print(custom_name[message.chat.id])
+  # bot.reply_to(message, f"Evaluating the \"{strategic_direction_name[message.chat.id]}.\" direction", reply_markup=markup)
+  show_menu(message)
 
 # меню команд
 def show_menu(message, send_new = True):
@@ -807,7 +1008,7 @@ def show_menu(message, send_new = True):
 def handle_start_phase_one(call):
   bot.answer_callback_query(call.id, "Preparing the simulation") #removes loading symbol
   # bot.send_message(call.message.chat.id, "Розпочинаємо симуляцію")
-  next = bot.send_message(call.message.chat.id, "Simulation has started. Please choose *strategic direction*\n(enter direction name below):")
+  next = bot.send_message(call.message.chat.id, "Simulation has started\. Please choose *strategic direction*\n\\(enter direction name below\\):", parse_mode="MarkdownV2")
   # Hand off the flow to the 'name_strategic_direction' function
   bot.register_next_step_handler(next, name_strategic_direction)
 # || Початок Симуляції
@@ -835,7 +1036,7 @@ def name_strategic_direction(message):
 @bot.callback_query_handler(func=lambda call: call.data == "init_rename")
 def handle_name_strategic_direction(call):
   bot.answer_callback_query(call.id) #removes loading symbol
-  next = bot.send_message(call.message.chat.id, "Please choose *strategic direction*\n(enter direction name below):")
+  next = bot.send_message(call.message.chat.id, "Please choose *strategic direction*\n\(enter direction name below\):", parse_mode="MarkdownV2")
   # Hand off the flow to the 'name_strategic_direction' function
   bot.register_next_step_handler(next, name_strategic_direction)
 
@@ -937,14 +1138,82 @@ def handle_p1_explain(call):
 def simulation_phase_one_explain(message):
   global simulation_parameters #we use some params from here
 
-  explain = explain_monte_carlo_phase1(
-      simulation_parameters[message.chat.id]["n"],
-      Max_Planning_Time=simulation_parameters[message.chat.id]["PT"],
-      w1=0.33, w2=0.33, w3=0.33,
-      noise_ic=0.05,
-      noise_v=0.05,
-      noise_time=1.0,
-      lang="en")
+  # explain = explain_monte_carlo_phase1(
+  #     simulation_parameters[message.chat.id]["n"],
+  #     Max_Planning_Time=simulation_parameters[message.chat.id]["PT"],
+  #     w1=0.33, w2=0.33, w3=0.33,
+  #     noise_ic=0.05,
+  #     noise_v=0.05,
+  #     noise_time=1.0,
+  #     lang="en")
+
+  explain = """
+  *Initial Strategic Environment Assessment*
+
+_Decision Risk Index \(DRI\)_ — Operational Readiness Indicator
+At the start of the simulation, the system evaluates the operational environment using four key planning parameters\\.
+ These parameters reflect the level of uncertainty, time constraints, and information reliability that will shape your decisions\\.
+
+Input Parameters
+1\\. Intelligence Confidence
+  _Represents the reliability and completeness of available intelligence\\._
+  High confidence: 90%
+  Moderate confidence: 50%
+  Low confidence: 20%
+`Intelligence_Confidence_dic = {"90%": 0\.9, "50%": 0\.5, "20%": 0\.2}`
+
+2\\. Operational Volatility
+  _Describes the level of unpredictability in the environment\._
+  Low volatility: Stable and predictable conditions
+  Medium volatility: Changing operational dynamics
+  High volatility: Rapid and uncertain developments
+`Volatility_dic = {"Low": 0\.3, "Medium": 0\.6, "High": 0\.9}`
+
+3\\. Maximum Planning Time
+  _48 hours — the maximum available time horizon for strategic planning under normal conditions\\. _
+
+4\\. Time Pressure
+  _Defines how urgently a decision must be made\\._
+  Strategic Analysis: 48 hours
+  Operational Level: 6 hours
+  Crisis Decision: 0\\.5 hours
+`Time_Pressure_dic = {"Strategic Analysis": 48, "Operational level": 6, "Crisis decision": 0\.5}`
+
+_Decision Risk Index \(DRI\)_
+Based on these parameters, the framework calculates the Decision Risk Index \(DRI\) — a quantitative indicator of the decision environment\.
+The DRI helps commanders understand how difficult, unstable, and time\-constrained the situation is before selecting a Course of Action\.
+
+Operational Environment Classification
+The calculated DRI determines the decision environment:
+_Situation Under Control_
+  DRI < 0\\.30
+  The environment is stable\\. Decisions can be made with sufficient time and reliable information\\.
+_Maneuver Risk_
+  0\\.30 ≤ DRI < 0\\.60
+  The situation requires careful coordination and risk management\\.
+_Crisis Mode_
+  0\\.60 ≤ DRI < 0\\.80
+  Time pressure and uncertainty significantly affect decision\-making\\.
+_Critical State_
+  DRI ≥ 0\\.80
+  The environment is unstable and highly time\\-sensitive\. Decisions must be made under severe constraints\\.
+
+ℹ️ How Monte Carlo works
+• Step 1: The bot picks ONE mission scenario: IC / Volatility / Available time\\.
+• Step 2: We run 5000 simulations around that scenario, adding uncertainty \(noise\):
+  \- IC varies by ±0\\.05
+  \- Volatility varies by ±0\\.05
+  \- Available time varies by ±1\\.0h
+• Step 3: Each run computes DRI using weights w1\=0\\.33, w2\=0\\.33, w3\=0\\.33 and Max planning time \= 48h\.
+
+✅ Output:
+• Base DRI \(no\-noise scenario\)
+• Mean DRI \(average over all runs\)
+• P90 DRI \(bad\-tail risk\)
+• Crisis\+Critical % and Critical tail %
+Meaning: not one forecast — a risk distribution under uncertainty\.
+
+  """
 
   markup = types.InlineKeyboardMarkup()
   btn_back = types.InlineKeyboardButton("<< back", callback_data="start_simulation", style="success")
@@ -959,20 +1228,73 @@ def simulation_phase_one_explain(message):
 def handle_simulation_p1_confirm_parameters(call):
   bot.answer_callback_query(call.id, "parameters are confirmed")
   print("p1 parameters confirmed")
+  # scoring
+  global current_score
+  run_id = generate_random_token()
+  # user_id = call.from_user.id
+  user_id = call.message.chat.id
+  global custom_name
+  user_name = custom_name[user_id]
+  timestamp = datetime.date.today()
+  print(timestamp)
+  current_score[user_id] = [
+      user_id,
+      user_name,
+      run_id,
+      strategic_direction_name[user_id],
+      timestamp.isoformat() #in a better format
+  ]
+  # print(f"score record created for {run_id}:\n{current_score[call.from_user.id]}")
+
   simulation_phase_one_analyze(call.message)
 
 def simulation_phase_one_analyze(message):
   markup = types.InlineKeyboardMarkup()
-  btn_CoA = types.InlineKeyboardButton("Compare CoA", callback_data="p1_analysis:Compare CoA")
-  btn_SAnal = types.InlineKeyboardButton("Sensitivity Analysis", callback_data="p1_analysis:Sensitivity Analysis")
-  btn_WinP = types.InlineKeyboardButton("Win Probability", callback_data="p1_analysis:Win Probability")
-  btn_AR = types.InlineKeyboardButton("AR summary", callback_data="p1_analysis:AR Summary")
-  btn_conclude = types.InlineKeyboardButton("Phase 2 suggestions", callback_data="p1_placeholder:Phase one conclusion")
+  # btn_CoA = types.InlineKeyboardButton("Compare CoA", callback_data="p1_analysis:Compare CoA")
+  # btn_SAnal = types.InlineKeyboardButton("Sensitivity Analysis", callback_data="p1_analysis:Sensitivity Analysis")
+  # btn_WinP = types.InlineKeyboardButton("Win Probability", callback_data="p1_analysis:Win Probability")
+  # btn_AR = types.InlineKeyboardButton("AR summary", callback_data="p1_analysis:AR Summary")
+  # btn_conclude = types.InlineKeyboardButton("Phase 2 suggestions", callback_data="p1_placeholder:Phase one conclusion")
 
   # Each line adds a row of buttons
-  markup.add(btn_CoA,btn_WinP,btn_SAnal)
-  #markup.add(btn_AR,btn_conclude)
-  markup.add(btn_AR)
+  # markup.add(btn_CoA,btn_WinP,btn_SAnal)
+  # markup.add(btn_AR,btn_conclude)
+  # markup.add(btn_AR)
+
+  # markup = quick_markup({
+  #   # 'Test CoA'                  : {'callback_data': 'p1_analysis:Test CoA'},
+  #   'Test Sensitivity analysis' : {'callback_data': 'p1_analysis:Test Sens'},
+  #   'Test Win Probability'      : {'callback_data': 'p1_analysis:Test WinP'}
+  # }, row_width=2)
+
+  btn_Test_Sens = types.InlineKeyboardButton(
+      "Test Sensitivity Analysis",
+      callback_data="p1_analysis:Test Sens")
+  btn_Test_WinP = types.InlineKeyboardButton(
+      "Test Win Probability",
+      callback_data="p1_analysis:Test WinP")
+  btn_Conclude = types.InlineKeyboardButton(
+      "Complete simulation",
+      callback_data="p1_analysis:Conclude")
+
+  Sens = WinP = False
+
+  user_id = message.chat.id
+
+  for i in range(4, len(current_score[user_id])):
+    if current_score[user_id][i][1] == 'Sensitivity':
+      Sens = True
+    if current_score[user_id][i][1] == 'Win Probability':
+      WinP = True
+
+  if not Sens and not WinP:
+    markup.add(btn_Test_Sens, btn_Test_WinP)
+  elif not Sens:
+    markup.add(btn_Test_Sens)
+  elif not WinP:
+    markup.add(btn_Test_WinP)
+  else:
+    markup.add(btn_Conclude)
 
   bot.edit_message_reply_markup(
         chat_id=message.chat.id,
@@ -980,27 +1302,213 @@ def simulation_phase_one_analyze(message):
         reply_markup=markup
     )
 
+  # bot.edit_message_text(
+  #       chat_id=message.chat.id,
+  #       message_id=message.id,
+  #       text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]}",
+  #       reply_markup=markup
+  #   )
+
 #обробка додаткових виводів
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p1_analysis:"))
 def handle_p1_analysis(call):
   callback = call.data.split(':')[1] # розділяємо дані колбеку і використовуємо другу частину (після двокрапки)
   bot.answer_callback_query(call.id, text=f"processing {callback}...")
 
-  if callback == "Compare CoA":
+  if callback == "Score Sens":
+    callback=call.data.split(':')[2]
+    print(callback)
+    simulation_p1_score_sens(call.message,callback)
+
+  if callback == "Score WinP":
+    callback=call.data.split(':')[2]
+    print(callback)
+    simulation_p1_score_winp(call.message,callback)
+
+  if callback == "Simulation Details":
+      simulation_phase_one_analyze(call.message)
+  elif callback == "Compare CoA":
       simulation_p1_compare_coa(call.message)
   elif callback == "Sensitivity Analysis":
       simulation_p1_sensitivity_analysis(call.message)
   elif callback == "Win Probability":
       simulation_p1_win_probability(call.message)
+  # scoring block
+  elif callback == "Test CoA":
+      simulation_p1_compare_coa(call.message)
+  elif callback == "Test Sens":
+      simulation_p1_test_sens(call.message)
+  elif callback == "Test WinP":
+      simulation_p1_test_winp(call.message)
+  # end scoring block
   elif callback == "AR Summary":
       simulation_p1_AR_summary(call.message)
-  elif callback == "Phase one conclusion":
+  elif callback == "Conclude":
       simulation_p1_conclude(call.message)
   else:
       # Fallback or generic pass
       pass
 
   print(f"processed callback: {callback}")
+
+# scoring #######################################
+def simulation_p1_test_sens(message):
+  global simulation_parameters
+  global strategic_direction_name
+  user_id = message.chat.id
+
+  message_text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]} \n\n Given these parameters, choose the largest contributor.",
+
+  markup = quick_markup({
+    'Intelligence Confidence' : {'callback_data': 'p1_analysis:Score Sens:IC'},
+    'Volatility'              : {'callback_data': 'p1_analysis:Score Sens:V'},
+    'Time pressure'           : {'callback_data': 'p1_analysis:Score Sens:TP'}
+  }, row_width=3)
+
+  bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup)
+
+def simulation_p1_score_sens(message,answer):
+  global simulation_parameters
+  global strategic_direction_name
+  global current_score
+  user_id = message.chat.id
+
+  sens = Sensitivity_Analysis_DRI_fixed_keys(
+    Intelligence_Confidence_dic,
+    Volatility_dic,
+    Time_Pressure_dic,
+    Max_Planning_Time=simulation_parameters[user_id]["PT"],
+    Intelligence_Confidence_key=simulation_parameters[user_id]["IC"],
+    Volatility_key=simulation_parameters[user_id]["VL"],
+    Time_Pressure_key=simulation_parameters[user_id]["TP"],
+    n=simulation_parameters[user_id]["n"],
+    w1=w1, w2=w2, w3=w3,
+    noise_ic=0.05, noise_v=0.05, noise_time=1.0
+  )
+
+  # print(sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True)[0][0])
+
+  answer_key = sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True)[0][0]
+
+  #prettify
+  match answer:
+    case 'V' : answer = "Volatility"
+    case 'IC': answer = "Intel Confidence"
+    case 'TP': answer = "Time Pressure"
+  match answer_key:
+    case 'V' : answer_key = "Volatility"
+    case 'IC': answer_key = "Intel Confidence"
+    case 'TP': answer_key = "Time Pressure"
+
+
+  if answer == answer_key:
+    # print("correct")
+    score_text = f"your answer {answer} is correct"
+    current_score[user_id].append((
+        1,
+        "Sensitivity",
+        simulation_parameters[user_id],
+        sens
+        ))
+  else:
+    # print("incorrect")
+    score_text = f"your answer {answer} is incorrect: it's {answer_key}"
+    current_score[user_id].append((
+        0,
+        "Sensitivity",
+        simulation_parameters[user_id],
+        sens
+        ))
+
+  influence_share = {k: round(v*100, 1) for k, v in sens["influence_share"].items()}
+  message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
+Scenario parameters:  Intel:  {sens["scenario"]['IC_key']},   Volatility: {sens["scenario"]['V_key']}, Time pressure: {sens["scenario"]['TP_key']}
+Spearman correlation: Intel:  {sens["spearman_corr"]['IC']:.2f}, Volatility: {sens["spearman_corr"]['V']:.2f},  Time pressure: {sens["spearman_corr"]['TP']:.2f}
+Influence share:      Intel:  {influence_share['IC']:.2f}, Volatility: {influence_share['V']:.2f}, Time pressure: {influence_share['TP']:.2f}
+
+{score_text}
+  """
+
+  bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+  simulation_phase_one_analyze(message)
+
+def simulation_p1_test_winp(message):
+  global simulation_parameters
+  global strategic_direction_name
+  user_id = message.chat.id
+
+  message_text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]} \n\n Given these parameters, choose the course of action with highest Win Probability.",
+
+  markup = quick_markup({
+    'Attack'  : {'callback_data': 'p1_analysis:Score WinP:Attack'},
+    'Regroup' : {'callback_data': 'p1_analysis:Score WinP:Regroup'}
+  }, row_width=3)
+
+  bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup)
+
+def simulation_p1_score_winp(message,answer):
+  global simulation_parameters
+  global strategic_direction_name
+  global current_score
+  user_id = message.chat.id
+
+  w1,w2,w3 = simulation_parameters[user_id]['weights'].values()
+  coa_wp, rec = Monte_Carlo_Compare_COA_With_WinProb_fixed_keys(
+      Intelligence_Confidence_dic,
+      Volatility_dic,
+      Time_Pressure_dic,
+      Max_Planning_Time=simulation_parameters[user_id]["PT"],
+      Intelligence_Confidence_key=simulation_parameters[user_id]["IC"],
+      Volatility_key=simulation_parameters[user_id]["VL"],
+      Time_Pressure_key=simulation_parameters[user_id]["TP"],
+      n=simulation_parameters[user_id]["n"],
+      w1=w1, w2=w2, w3=w3,
+      k=8,
+      threshold=0.6,
+      noise_ic=0.05, noise_v=0.05, noise_time=1.0
+  )
+
+  # print(sorted(coa_wp.items(), key=lambda item: item[1]["WinProb_Mean"]-item[1]["Critical_%"], reverse=True)[0][0])
+
+  answer_key = sorted(coa_wp.items(), key=lambda item: item[1]["WinProb_Mean"]-item[1]["Critical_%"], reverse=True)[0][0]
+
+  if answer == answer_key:
+    # print("correct")
+    score_text = f"Chosen course of action {answer} has highest win probability"
+    current_score[user_id].append((
+        1,
+        "Win Probability",
+        simulation_parameters[user_id],
+        coa_wp
+        ))
+  else:
+    # print("incorrect")
+    score_text = f"Chosen course of action {answer} is incorrect: {answer_key} has highest win probability"
+    current_score[user_id].append((
+        0,
+        "Win Probability",
+        simulation_parameters[user_id],
+        coa_wp
+        ))
+
+  IC_key, V_key, TP_key = simulation_parameters[user_id]["IC"], simulation_parameters[user_id]["VL"], simulation_parameters[user_id]["TP"]
+  compare_stats_text = f"Scenario: {IC_key}, {V_key}, {TP_key}\n"
+  for key, value in coa_wp.items():
+    compare_stats_text += f"for {key} CoA, 90 percentile win probability is at {value.get('WinProb_P90'):.2f} with a {value.get('Critical_%')*100:.2f}% critical tail\n"
+
+  # print(compare_stats_text)
+
+  message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
+  {compare_stats_text}
+  {rec}
+
+  {score_text}
+  """
+
+  bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+  simulation_phase_one_analyze(message)
+# scoring #######################################
+
 
 def simulation_p1_compare_coa(message):
   #display CoA comparison and all the buttons
@@ -1056,9 +1564,10 @@ def simulation_p1_sensitivity_analysis(message):
     noise_ic=0.05, noise_v=0.05, noise_time=1.0
   )
 
-  print(sens["scenario"])
-  print(sens["spearman_corr"])
-  print({k: round(v*100, 1) for k, v in sens["influence_share"].items()})
+  # print(sens["scenario"])
+  # print(sens["spearman_corr"])
+  # # Combined sensitivity score = spearman x influence share
+  # print({k: round(v*100, 1) for k, v in sens["influence_share"].items()})
 
   influence_share = {k: round(v*100, 1) for k, v in sens["influence_share"].items()}
   message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
@@ -1149,7 +1658,23 @@ def simulation_p1_AR_summary(message):
 
 def simulation_p1_conclude(message):
   # see Transition Gate Function
-  pass
+  # pass
+
+  # temporarily using this to display scores
+
+  global current_score
+  global score_table
+  user_id = message.chat.id
+  score = 0
+
+  for i in range(5, len(current_score[user_id])):
+    score += current_score[user_id][i][0]
+  message_text = f"Total score is {score} points for run {current_score[user_id][1]}"
+  # print(message_text)
+  run_id = current_score[user_id][2]
+  score_table[run_id] = current_score[user_id]
+
+  bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
 
 
 #обробка тимчасових кніпок
@@ -1181,7 +1706,110 @@ def handle_AR_summary(call):
 
   bot.send_message(call.message.chat.id, f"AR: {AR_summary}", reply_markup=markup)
 
+
+Save_Dataframe = False
+if Save_Dataframe:  
+  flattened_rows = []
+  for run_key, data in score_table.items():
+
+      print(f"raw data: \n {data} \n------------------")
+      # 1. Extract metadata by index
+      user_id   = data[0]
+      user_name = data[1]
+      run_id    = data[2]
+      dirname   = data[3]
+      datestamp = data[4]
+
+      # 2. Iterate through the remaining items (the scores)
+      # data[5:] takes everything from the 6th element to the end
+      for score_tuple in data[5:]:
+        print(score_tuple)
+        value, test_name, *context = score_tuple
+
+        flattened_rows.append({
+            "user_id": user_id,
+            "user_name": user_name,
+            "date": datestamp,
+            "run_id": run_id,
+            "direction": dirname,
+            "test_name": test_name,
+            "score": value,
+            "context": context
+        })
+
+  # 3. Create the DataFrame
+  df = pd.DataFrame(flattened_rows)
+
+  if os.getenv("COLAB_RELEASE_TAG"):
+      from google.colab import drive
+      #if not on Render, importing drive lib for files
+      drive.mount('/content/drive/')
+      save_path = '/content/drive/MyDrive/Colab/Telegram test/'
+  elif os.getenv("RENDER"):
+      save_path = '' #saving into current working directory
+      # unless we want to invest into
+  else:
+      save_path = os.path.join(os.getcwd(), 'temp')
+      # saves into CWD / temp subpath
+
+  scorefile = save_path + 'scores.csv'
+  print(scorefile)
+  if os.path.isfile(scorefile):
+      print("Appending scores")
+      # mode = 'a' for append
+      df.to_csv(scorefile, mode='a', index=False, header=False)
+  else:
+      print("File not found, creating new...")
+      df.to_csv(scorefile, encoding='utf-8', index=False)
+
 ### START BOT
 
 print("<info>: Bot is listening")
 bot.infinity_polling()
+
+Test_Score_Dataframe = False
+
+import pandas as pd
+
+if Test_Score_Dataframe:
+  flattened_rows = []
+  for run_key, data in score_table.items():
+
+      print(f"raw data: \n {data} \n------------------")
+      # 1. Extract metadata by index
+      user_id   = data[0]
+      user_name = data[1]
+      run_id    = data[2]
+      dirname   = data[3]
+      datestamp = data[4]
+
+      # 2. Iterate through the remaining items (the scores)
+      # data[5:] takes everything from the 6th element to the end
+      for score_tuple in data[5:]:
+        print(score_tuple)
+        value, test_name, *context = score_tuple
+
+        flattened_rows.append({
+            "user_id": user_id,
+            "user_name": user_name,
+            "date": datestamp,
+            "run_id": run_id,
+            "direction": dirname,
+            "test_name": test_name,
+            "score": value,
+            "context": context
+        })
+
+  # 3. Create the DataFrame
+  df = pd.DataFrame(flattened_rows)
+
+
+  print(f"  > DataFrame for the score table: <\n{df}")
+
+  # 4. Score sum
+  summary_df = df.groupby(['user_id', 'run_id', 'direction']).agg(
+        total_score=('score', 'sum'),
+        test_count=('test_name', 'count')
+    ).reset_index()
+
+  print(f"---< Score summary: >--- \n{summary_df}\n------------------------")
