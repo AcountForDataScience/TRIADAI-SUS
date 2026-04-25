@@ -1,3 +1,7 @@
 .env
 .vscode/
 converted_notebook.py
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
