@@ -1,5 +1,6 @@
 # a few basics until I figure out a cleaner way
 from telebot import types
+from telebot.util import quick_markup, generate_random_token
 import datetime
 
 # simulation functions
@@ -16,6 +17,9 @@ from bot.simulations import (
     P1_WinProb,
     P1_Sensitivity_Analysis,
 )
+
+# print("\nLOOK HERE:")
+# print(Intelligence_Confidence.classify(0.7).display_name)
 
 # bot instance so I can use decorators 
 from bot.instance import bot
@@ -42,7 +46,7 @@ from bot.format_messages import (
     explain_monte_carlo_phase1,
     format_coa_message,
 )
-print(message_bot_welcome)
+
 
 ###########
 ## LOGIC ##
@@ -153,7 +157,7 @@ def show_menu(message, send_new = True):
 def handle_start_phase_one(call):
     bot.answer_callback_query(call.id, "Preparing the simulation") #removes loading symbol
     # bot.send_message(call.message.chat.id, "Розпочинаємо симуляцію")
-    next = bot.send_message(call.message.chat.id, "Simulation has started\. Please choose *strategic direction*\n\\(enter direction name below\\):", parse_mode="MarkdownV2")
+    next = bot.send_message(call.message.chat.id, "Simulation has started\\. Please choose *strategic direction*\n\\(enter direction name below\\):", parse_mode="MarkdownV2")
     # Hand off the flow to the 'name_strategic_direction' function
     bot.register_next_step_handler(next, name_strategic_direction)
     # || Початок Симуляції
@@ -181,7 +185,7 @@ def name_strategic_direction(message):
 @bot.callback_query_handler(func=lambda call: call.data == "init_rename")
 def handle_name_strategic_direction(call):
     bot.answer_callback_query(call.id) #removes loading symbol
-    next = bot.send_message(call.message.chat.id, "Please choose *strategic direction*\n\(enter direction name below\):", parse_mode="MarkdownV2")
+    next = bot.send_message(call.message.chat.id, "Please choose *strategic direction*\n\\(enter direction name below\\):", parse_mode="MarkdownV2")
     # Hand off the flow to the 'name_strategic_direction' function
     bot.register_next_step_handler(next, name_strategic_direction)
 
@@ -222,6 +226,7 @@ def simulation_phase_one(chat_id):
         #
 
         #shuffle parameters - later possibly define parameters as well
+    # print(f"alert\n{Intelligence_Confidence}\n{Volatility}\n{Time_Pressure}\n")
     IC, V, TP = P1_Shuffle(Intelligence_Confidence, Volatility, Time_Pressure)
     run_sample = 5000
 
@@ -306,7 +311,7 @@ def simulation_phase_one_explain(message):
 @bot.callback_query_handler(func=lambda call: call.data == "p1_confirm_parameters")
 def handle_simulation_p1_confirm_parameters(call):
     bot.answer_callback_query(call.id, "parameters are confirmed")
-    print("p1 parameters confirmed")
+    # print("p1 parameters confirmed")
     
     # scoring
     global current_score
@@ -316,7 +321,7 @@ def handle_simulation_p1_confirm_parameters(call):
     global custom_name
     user_name = custom_name[user_id]
     timestamp = datetime.date.today()
-    print(timestamp)
+    # print(timestamp)
     current_score[user_id] = [
         user_id,
         user_name,
@@ -397,12 +402,12 @@ def handle_p1_analysis(call):
 
     if callback == "Score Sens":
         callback=call.data.split(':')[2]
-        print(callback)
+        # print(callback)
         simulation_p1_score_sens(call.message,callback)
 
     if callback == "Score WinP":
         callback=call.data.split(':')[2]
-        print(callback)
+        # print(callback)
         simulation_p1_score_winp(call.message,callback)
 
     if callback == "Simulation Details":
@@ -429,7 +434,7 @@ def handle_p1_analysis(call):
         # Fallback or generic pass
         pass
 
-    print(f"processed callback: {callback}")
+    # print(f"processed callback: {callback}")
 
 # scoring #######################################
 def simulation_p1_test_sens(message):
@@ -738,13 +743,19 @@ def simulation_p1_conclude(message):
     global score_table
     user_id = message.chat.id
     score = 0
+    name = current_score[user_id][1]
+    direction = current_score[user_id][3]
+    run_id = current_score[user_id][2]
+    score_table[run_id] = current_score[user_id]
+    datestamp = current_score[user_id][4]
 
     for i in range(5, len(current_score[user_id])):
         score += current_score[user_id][i][0]
-    message_text = f"Total score is {score} points for run {current_score[user_id][1]}"
+    
+    message_text = f"Total score is {score} points for run {run_id} ({datestamp})\n\
+You were playing as {name} on {direction} direction\."
     # print(message_text)
-    run_id = current_score[user_id][2]
-    score_table[run_id] = current_score[user_id]
+
 
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
 

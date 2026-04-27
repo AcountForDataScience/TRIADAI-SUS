@@ -1,10 +1,11 @@
-# from bot.simulations import (
-#     Intelligence_Confidence ,
-#     Volatility              ,
-#     Time_Pressure           ,
-#     # Max_Planning_Time       , # defaults to "=48" hours
-#     Decision_Risk_Index     ,
-# )
+# from telebot.formatting import escape_markdown
+from bot.simulations import (
+    Intelligence_Confidence ,
+    Volatility              ,
+    Time_Pressure           ,
+    # Max_Planning_Time       , # defaults to "=48" hours
+    Decision_Risk_Index     ,
+)
 # from bot.simulations import P1_Shuffle as Shuffle
 # from bot.simulations import P1_Monte_Carlo as Monte_Carlo_DRI_fixed_keys
 # from bot.simulations import P1_Compare_CoA as Monte_Carlo_Compare_COA_fixed_keys
