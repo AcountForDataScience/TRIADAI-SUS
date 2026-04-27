@@ -2,7 +2,7 @@ import telebot, os
 
 #--------- Load Environment ---------#
 # used for local testing
-if os.getenv('RENDER') == "True":
+if os.getenv('RENDER'):
     print("Running on Render")
 else:
     from dotenv import load_dotenv
