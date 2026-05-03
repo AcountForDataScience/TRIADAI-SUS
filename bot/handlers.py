@@ -46,7 +46,7 @@ from bot.format_messages import (
     explain_monte_carlo_phase1,
     format_coa_message,
 )
-
+import bot.format_messages as getmessage
 
 ###########
 ## LOGIC ##
@@ -93,7 +93,7 @@ def send_welcome(message):
     global custom_name
     user_id = message.chat.id
     if not custom_name.get(user_id):
-        next = bot.send_message(message.chat.id, "You've launched the Strategic Uncertainty Simulation bot. Please enter your preferred name")
+        next = bot.send_message(message.chat.id, "You've launched the Strategic Uncertainty Simulation bot. Please enter your name or team name.")
         bot.register_next_step_handler(next, rename_user)
     else:
 
@@ -109,7 +109,7 @@ def command_rename(message):
     global custom_name
     user_id = message.chat.id
     if not custom_name.get(user_id):
-        next = bot.send_message(message.chat.id, "Please enter your preferred name:")
+        next = bot.send_message(message.chat.id, "Please enter your name or team name:")
     else:
         next = bot.send_message(message.chat.id, f"your current name is:{custom_name[user_id]}. Enter a new name:")
     bot.register_next_step_handler(next, rename_user)
@@ -118,7 +118,7 @@ def rename_user(message):
     global custom_name
 
     markup = types.InlineKeyboardMarkup()
-    btn_rename = types.InlineKeyboardButton("Rename direction", callback_data="init_rename", style="danger")
+    btn_rename = types.InlineKeyboardButton("Rename Team", callback_data="init_rename", style="danger")
     btn_start = types.InlineKeyboardButton("🚀Start scenario", callback_data="start_simulation",style="success")
     markup.add(btn_start, btn_rename)
 
@@ -169,9 +169,11 @@ def name_strategic_direction(message):
 
     markup = types.InlineKeyboardMarkup()
 
+    direction = message.text
+
     # btn_param = types.InlineKeyboardButton("Визначити параметри", callback_data="init_set_parameters")
     btn_rename = types.InlineKeyboardButton("Rename direction", callback_data="init_rename", style="danger")
-    btn_start = types.InlineKeyboardButton("🚀Start scenario", callback_data="start_simulation",style="success")
+    btn_start = types.InlineKeyboardButton(f"Continue with {direction[:30]}", callback_data="start_simulation",style="success")
 
     # Each line adds a row of buttons
     markup.add(btn_start, btn_rename)
@@ -179,7 +181,7 @@ def name_strategic_direction(message):
 
     strategic_direction_name[message.chat.id] = message.text
     # print(strategic_direction_name[message.chat.id])
-    bot.reply_to(message, f"Evaluating the \"{strategic_direction_name[message.chat.id]}.\" direction", reply_markup=markup)
+    bot.reply_to(message, f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" direction", reply_markup=markup)
 
 # переназвати напрямок
 @bot.callback_query_handler(func=lambda call: call.data == "init_rename")
@@ -305,7 +307,7 @@ def simulation_phase_one_explain(message):
     # Each line adds a row of buttons
     markup.add(btn_back)
 
-    bot.edit_message_text(explain, message.chat.id, message.id, reply_markup=markup)
+    bot.edit_message_text(explain, message.chat.id, message.id, reply_markup=markup, parse_mode="MarkdownV2")
 
 #Підтвердження параметрів
 @bot.callback_query_handler(func=lambda call: call.data == "p1_confirm_parameters")
@@ -436,21 +438,35 @@ def handle_p1_analysis(call):
 
     # print(f"processed callback: {callback}")
 
+# from telebot.formatting import escape_markdown
+
 # scoring #######################################
 def simulation_p1_test_sens(message):
     global simulation_parameters
     global strategic_direction_name
     user_id = message.chat.id
 
-    message_text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]} \n\n Given these parameters, choose the largest contributor.",
+    # message_text = "".join([
+    #     "Evaluating the \"", escape_markdown(strategic_direction_name[message.chat.id]), "\" strategic direction:\n",
+    #     escape_markdown(simulation_results[message.chat.id]["P1"]),
+    #     "~                    ~\n\n",
+    #     " \> *Which parameter has the greatest impact on the outcome?*"
+    # ])
+    # print(message_text)
+#     message_text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\
+# \n\n {simulation_results[message.chat.id]["P1"]} ------\n\n\
+#  > Which parameter has the greatest impact on the outcome?",
+
+    message_text = getmessage.sens_score_ask(strategic_direction_name[message.chat.id], simulation_results[message.chat.id]["P1"])
 
     markup = quick_markup({
-        'Intelligence Confidence' : {'callback_data': 'p1_analysis:Score Sens:IC'},
+        'Intell Confidence' : {'callback_data': 'p1_analysis:Score Sens:IC'},
         'Volatility'              : {'callback_data': 'p1_analysis:Score Sens:V'},
         'Time pressure'           : {'callback_data': 'p1_analysis:Score Sens:TP'}
     }, row_width=3)
 
-    bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup)
+    bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup, parse_mode="MarkdownV2")
+    # bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup)
 
 def simulation_p1_score_sens(message,answer):
     global simulation_parameters
@@ -511,15 +527,21 @@ def simulation_p1_score_sens(message,answer):
             ))
 
     influence_share = {k: round(v*100, 1) for k, v in sens["influence_share"].items()}
-    message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
-    Scenario parameters:  Intel:  {sens["scenario"]['IC_key']},   Volatility: {sens["scenario"]['V_key']}, Time pressure: {sens["scenario"]['TP_key']}
-    Spearman correlation: Intel:  {sens["spearman_corr"]['IC']:.2f}, Volatility: {sens["spearman_corr"]['V']:.2f},  Time pressure: {sens["spearman_corr"]['TP']:.2f}
-    Influence share:      Intel:  {influence_share['IC']:.2f}, Volatility: {influence_share['V']:.2f}, Time pressure: {influence_share['TP']:.2f}
 
-    {score_text}
-    """
+    # message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
+    # Scenario parameters:  Intel:  {sens["scenario"]['IC_key']},   Volatility: {sens["scenario"]['V_key']}, Time pressure: {sens["scenario"]['TP_key']}
+    # Spearman correlation: Intel:  {sens["spearman_corr"]['IC']:.2f}, Volatility: {sens["spearman_corr"]['V']:.2f},  Time pressure: {sens["spearman_corr"]['TP']:.2f}
+    # Influence share:      Intel:  {influence_share['IC']:.2f}, Volatility: {influence_share['V']:.2f}, Time pressure: {influence_share['TP']:.2f}
+    # ---------
+    # {score_text}
+    # """
 
-    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+    message_text = "\n\n".join([
+        getmessage.sens_score_answer(strategic_direction_name[user_id],sens,influence_share),
+        score_text
+        ])
+
+    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id, parse_mode="MarkdownV2")
     simulation_phase_one_analyze(message)
 
 def simulation_p1_test_winp(message):
@@ -527,14 +549,16 @@ def simulation_p1_test_winp(message):
     global strategic_direction_name
     user_id = message.chat.id
 
-    message_text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]} \n\n Given these parameters, choose the course of action with highest Win Probability.",
+    message_text=getmessage.winp_score_ask(strategic_direction_name[message.chat.id],simulation_results[message.chat.id]["P1"])
+    
+    # f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]} ------\n\n >Which course of action has the highest Win Probability?",
 
     markup = quick_markup({
         'Attack'  : {'callback_data': 'p1_analysis:Score WinP:Attack'},
         'Regroup' : {'callback_data': 'p1_analysis:Score WinP:Regroup'}
     }, row_width=3)
 
-    bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup)
+    bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup, parse_mode="MarkdownV2")
 
 def simulation_p1_score_winp(message,answer):
     global simulation_parameters
@@ -578,21 +602,26 @@ def simulation_p1_score_winp(message,answer):
             coa_wp
             ))
 
-    IC_key, V_key, TP_key = simulation_parameters[user_id]["IC"], simulation_parameters[user_id]["VL"], simulation_parameters[user_id]["TP"]
-    compare_stats_text = f"Scenario: {IC_key}, {V_key}, {TP_key}\n"
-    for key, value in coa_wp.items():
-        compare_stats_text += f"for {key} CoA, 90 percentile win probability is at {value.get('WinProb_P90'):.2f} with a {value.get('Critical_%')*100:.2f}% critical tail\n"
+    # IC_key, V_key, TP_key = simulation_parameters[user_id]["IC"], simulation_parameters[user_id]["VL"], simulation_parameters[user_id]["TP"]
+    # compare_stats_text = f"Scenario: {IC_key}, {V_key}, {TP_key}\n"
+    # for key, value in coa_wp.items():
+    #     compare_stats_text += f"for {key} CoA, 90 percentile win probability is at {value.get('WinProb_P90'):.2f} with a {value.get('Critical_%')*100:.2f}% critical tail\n"
 
     # print(compare_stats_text)
 
-    message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
-    {compare_stats_text}
-    {f"According to integral criterion (WinProb_mean − Critical_tail) best course of action is: **{rec}**."}
+#     message_text = f"""Evaluating the \"{strategic_direction_name[user_id]}\" direction:
+# {compare_stats_text}
+# {f"According to integral criterion (WinProb_mean − Critical_tail) best course of action is: **{rec}**."}
+# ---------
+# {score_text}
+#     """
 
-    {score_text}
-    """
+    message_text = "\n".join([
+        getmessage.winp_score_answer(strategic_direction_name[user_id],simulation_parameters[user_id],coa_wp,rec),
+        score_text,
+    ])
 
-    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id, parse_mode="MarkdownV2")
     simulation_phase_one_analyze(message)
 # scoring #######################################
 
@@ -752,8 +781,8 @@ def simulation_p1_conclude(message):
     for i in range(5, len(current_score[user_id])):
         score += current_score[user_id][i][0]
     
-    message_text = f"Total score is {score} points for run {run_id} ({datestamp})\n\
-You were playing as {name} on {direction} direction\."
+    message_text = f"Total score is {score} points for run ID: `{run_id}` ({datestamp})\n\
+You were playing as {name} on {direction} direction."
     # print(message_text)
 
 

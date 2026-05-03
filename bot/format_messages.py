@@ -1,4 +1,5 @@
 # from telebot.formatting import escape_markdown
+# from simulations import(
 from bot.simulations import (
     Intelligence_Confidence ,
     Volatility              ,
@@ -18,19 +19,23 @@ from bot.simulations import (
 #     Time_Pressure           ,
 # )
 
+from telebot.formatting import escape_markdown
+
+linebreak : str = "~                     ~​" # MarkdownV2 line breakw/ zero width space
+
 # region Welcome message
 message_bot_welcome = """
-    Welcome to the *TRIADAI\\-SUS* Framework
-    _AI/AR\-Driven Strategic Uncertainty & Decision Simulation Environment_
+    Welcome to the *TRIADAI−SUS* Framework
+    _AI/AR−Driven Strategic Uncertainty & Decision Simulation Environment_
 
-    *TRIADAI\-SUS* is a strategic wargaming and decision\\-support framework designed to strengthen command thinking and improve military strategic planning under uncertainty\.
-    This simulation environment introduces modern Artificial Intelligence methods into the decision\\-making process and demonstrates how data\-driven tools can support commanders at operational and strategic levels\.
+    *TRIADAI−SUS* is a strategic wargaming and decision−support framework designed to strengthen command thinking and improve military strategic planning under uncertainty\.
+    This simulation environment introduces modern Artificial Intelligence methods into the decision−making process and demonstrates how data−driven tools can support commanders at operational and strategic levels\.
 
     🎯 Purpose of the Framework
-    TRIADAI\\-SUS is designed for:
+    TRIADAI−SUS is designed for:
     • Enhancing strategic command thinking during military planning and crisis response
     • Introducing modern AI algorithms into professional military education
-    • Explaining how AI tools support evidence\\-based decision\\-making in complex and uncertain environments
+    • Explaining how AI tools support evidence−based decision−making in complex and uncertain environments
     • Demonstrating when to apply specific analytical methods, such as:
     ○ Monte Carlo simulation — to explore uncertainty
         and compare alternative courses of action
@@ -46,8 +51,8 @@ message_bot_welcome = """
     • Evaluate alternative Courses of Action \(COA\)
     • Observe Win Probability and risk indicators in real time
     • Understand how uncertainty affects operational success
-    • Learn to interpret AI\\-generated recommendations
-    • Develop structured decision\\-making under time pressure
+    • Learn to interpret AI−generated recommendations
+    • Develop structured decision−making under time pressure
     """
 # endregion
 
@@ -86,7 +91,7 @@ message_p1_explain = """
 
     _Decision Risk Index \(DRI\)_
     Based on these parameters, the framework calculates the Decision Risk Index \(DRI\) — a quantitative indicator of the decision environment\.
-    The DRI helps commanders understand how difficult, unstable, and time\-constrained the situation is before selecting a Course of Action\.
+    The DRI helps commanders understand how difficult, unstable, and time−constrained the situation is before selecting a Course of Action\.
 
     Operational Environment Classification
     The calculated DRI determines the decision environment:
@@ -98,23 +103,23 @@ message_p1_explain = """
     The situation requires careful coordination and risk management\\.
     _Crisis Mode_
     0\\.60 ≤ DRI < 0\\.80
-    Time pressure and uncertainty significantly affect decision\-making\\.
+    Time pressure and uncertainty significantly affect decision−making\\.
     _Critical State_
     DRI ≥ 0\\.80
-    The environment is unstable and highly time\\-sensitive\. Decisions must be made under severe constraints\\.
+    The environment is unstable and highly time−sensitive\. Decisions must be made under severe constraints\\.
 
     ℹ️ How Monte Carlo works
     • Step 1: The bot picks ONE mission scenario: IC / Volatility / Available time\\.
     • Step 2: We run 5000 simulations around that scenario, adding uncertainty \(noise\):
-    \- IC varies by ±0\\.05
-    \- Volatility varies by ±0\\.05
-    \- Available time varies by ±1\\.0h
-    • Step 3: Each run computes DRI using weights w1\=0\\.33, w2\=0\\.33, w3\=0\\.33 and Max planning time \= 48h\.
+    \\- IC varies by ±0\\.05
+    \\- Volatility varies by ±0\\.05
+    \\- Available time varies by ±1\\.0h
+    • Step 3: Each run computes DRI using weights w1\=0\\.33, w2\=0\\.33, w3\=0\\.33 and Max planning time \= 48h\\.
 
     ✅ Output:
-    • Base DRI \(no\-noise scenario\)
+    • Base DRI \(no−noise scenario\)
     • Mean DRI \(average over all runs\)
-    • P90 DRI \(bad\-tail risk\)
+    • P90 DRI \(bad−tail risk\)
     • Crisis\+Critical % and Critical tail %
     Meaning: not one forecast — a risk distribution under uncertainty\.
 
@@ -211,9 +216,9 @@ def explain_monte_carlo_phase1(
             f"• Step 3: Each run computes DRI using weights w1={w1:.2f}, w2={w2:.2f}, w3={w3:.2f} "
             f"and Max planning time = {Max_Planning_Time}h.\n\n"
             "✅ Output:\n"
-            "• Base DRI (no-noise scenario)\n"
+            "• Base DRI (no−noise scenario)\n"
             "• Mean DRI (average over all runs)\n"
-            "• P90 DRI (bad-tail risk)\n"
+            "• P90 DRI (bad−tail risk)\n"
             "• Crisis+Critical % and Critical tail %\n"
             "Meaning: not one forecast — a risk distribution under uncertainty."
         )
@@ -284,6 +289,72 @@ Scenario keys: IC={IC_key}, Volatility={V_key}, Time={TP_key}
 # print(Sensitivity_Analysis_DRI_fixed_keys(Intelligence_Confidence_key, Volatility_key, Time_Pressure_key))
 # print("===Sesitivity Analysis fixed keys===")
 
+# region scoring
+    # region sensitivity
+def sens_score_ask(strategic_direction_name: str, P1_simulation_results: str):
+    message_text = "".join([
+        "Evaluating the \"", escape_markdown(strategic_direction_name), "\" strategic direction:\n",
+        escape_markdown(P1_simulation_results), # implicit \n in format
+        "~                    ~​\n\n",
+        " \> *Which parameter has the greatest impact on the outcome?*"
+    ])
+    return message_text
+
+def sens_score_answer(strategic_direction_name: str, sens: dict[str,object], influence_share: dict[str,float]):
+    
+    message_text = "".join([
+    escape_markdown(
+    f"""Evaluating the \"{strategic_direction_name}\" direction:
+    Scenario parameters:
+        Intel:  {sens["scenario"]['IC_key'].display_name},
+        Volatility: {sens["scenario"]['V_key'].display_name},
+        Time pressure: {sens["scenario"]['TP_key'].display_name}
+    Spearman correlation:
+        Intel:  {sens["spearman_corr"]['IC']:.2f}, 
+        Volatility: {sens["spearman_corr"]['V']:.2f},  
+        Time pressure: {sens["spearman_corr"]['TP']:.2f}
+    Influence share:     
+        Intel:  {influence_share['IC']:.2f}, 
+        Volatility: {influence_share['V']:.2f}, 
+        Time pressure: {influence_share['TP']:.2f}
+    """),
+    "~                     ~​"
+    ])
+    return message_text
+    # endregion
+
+    # region Win Probability
+def winp_score_ask(strategic_direction_name: str, P1_simulation_results: str):
+    message_text = "".join([
+        "Evaluating the \"", escape_markdown(strategic_direction_name), "\" strategic direction:\n",
+        escape_markdown(P1_simulation_results), # implicit \n in format
+        "~                    ~​\n\n",
+        " \> *Which course of action has the highest Win Probability?*"
+    ])
+    return message_text
+
+def winp_score_answer(strategic_direction_name: str, simulation_parameters:dict[str,object], coa_wp:dict[str,object], rec:str):
+
+    IC_key, V_key, TP_key = simulation_parameters["IC"], simulation_parameters["VL"], simulation_parameters["TP"]
+    compare_stats_text = f"Scenario: IC: {IC_key.display_name}\, V: {V_key.display_name}\, TP: {TP_key.display_name}\n"
+    for key, value in coa_wp.items():
+        compare_stats_text += escape_markdown(f"  for {key} CoA, 90 percentile win probability is at {value.get('WinProb_P90'):.2f} with a {value.get('Critical_%')*100:.2f}% critical tail\n")
+
+    
+    message_text = f"""Evaluating the \"{escape_markdown(strategic_direction_name)}\" direction:
+{compare_stats_text}
+{f"According to integral criterion \\(WinProb\_mean − Critical\_tail\\) best course of action is: *{rec}*\\."}
+~                     ~​
+    """
+    print(message_text)
+    return message_text
+
+    # endregion
+
+# endregion
+
+# print(sens_score_ask("name", "parameters\ncome\nhere"))
+
 # region AR Summary
 def build_ar_summary_short(
     scenario_keys,          # (IC_key, V_key, TP_key) e.g. ("50%", "High", "6h")
@@ -293,7 +364,7 @@ def build_ar_summary_short(
     sensitivity=None        # optional: {"top":"TP", "order":["TP","V","IC"]} or {"shares":{"TP":0.48,...}}
 ):
     """
-    Повертає 4 короткі рядки для AR-екрана (1 погляд = 1 рішення).
+    Повертає 4 короткі рядки для AR−екрана (1 погляд = 1 рішення).
     Формат:
       TOP:    IC=50% | Vol=High | Time=6h
       CENTER: DRI 0.62 Crisis | P90 0.78
