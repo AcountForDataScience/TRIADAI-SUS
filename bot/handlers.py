@@ -786,7 +786,141 @@ You were playing as {name} on {direction} direction."
     # print(message_text)
 
 
-    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+    # bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+    markup = quick_markup({
+        'Button Text' : {'callback_data': 'p2:select regiments'}
+    }, row_width = 1)
+    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id,reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("p2:"))
+def handle_phase_two_callbacks(call):
+    callback = call.data.split(':')[1] #split the function and take second part only
+    # bot.answer_callback_query(call.id, text=f"Processing {callback}...")
+
+    if callback == "select regiments":
+        phase_two_select_regiments(call.message)
+    elif callback == "select":
+        regiment = call.data.split(':')[2]
+        selection = call.data.split(':')[3:]
+
+        if not regiment in [
+            'Ground',
+            'Airforce',
+            'USF',
+            'Medical',
+        ]:
+            bot.answer_callback_query(call.id, text=f"Can't select {regiment}")
+        else:
+            # print(f"We are now in the callback!\n{call.data}")
+            # print(f"selection: {selection}")
+            if not regiment in selection:
+                selection.append(regiment)
+                text = f"{regiment} is now selected"
+                # print(f"{regiment} is now selected")
+            else:
+                selection.remove(regiment)
+                text = f"{regiment} is removed from selection"
+                # print(f"{regiment} is removed from selection")
+            # print(regiment)
+            # print(selection)
+            bot.answer_callback_query(call.id, text=text)
+        phase_two_select_regiments(call.message, selection)
+    elif callback == "confirm selected":
+        bot.answer_callback_query(call.id, text=f"Selection confirmed!")
+    else:
+        # Fallback or generic pass
+        pass
+
+    bot.answer_callback_query(call.id, text=f"Processed {callback}...")
+    print(f"Universal Handler caught: {callback}")
+
+
+@bot.message_handler(commands=["phasetwo"])
+def phase_two_skip(message):
+    user_id = message.chat.id
+    if not strategic_direction_name.get(user_id):
+        strategic_direction_name[user_id] = 'test_direction'
+    if not custom_name.get(user_id):
+        custom_name[user_id] = 'test_user'
+
+    message_text = "Please select the regiments required for this operation."
+
+    markup = quick_markup({
+    'Ground Forces'         : {'callback_data': 'p2:select:Ground'},
+    'Air Force'             : {'callback_data': 'p2:select:Airforce'},
+    'Navy'                  : {'callback_data': 'p2:select:Navy'},
+    'Airborne Assault F'    : {'callback_data': 'p2:select:Airborne'},
+    'Special Operations F'  : {'callback_data': 'p2:select:SOF'},
+    'Territorial Defense F' : {'callback_data': 'p2:select:TDF'},
+    'Unmanned Systems F'    : {'callback_data': 'p2:select:USF'},
+    'Support Forces'        : {'callback_data': 'p2:select:Support'},
+    'Logistics Forces'      : {'callback_data': 'p2:select:Logistics'},
+    'Medical Forces'        : {'callback_data': 'p2:select:Medical'},
+    'Signal and Cybersec F' : {'callback_data': 'p2:select:SigSec'},
+    }, row_width=2)
+
+    bot.send_message(message.chat.id, message_text, reply_markup=markup)
+
+
+
+def phase_two_select_regiments(message, selection: list):
+    user_id = message.chat.id
+    if not strategic_direction_name.get(user_id):
+        strategic_direction_name[user_id] = 'test_direction'
+    if not custom_name.get(user_id):
+        custom_name[user_id] = 'test_user'
+
+    regiments = {    
+        'Ground Forces'         : 'Ground',
+        'Air Force'             : 'Airforce',
+        'Navy'                  : 'Navy',
+        'Airborne Assault F'    : 'Airborne',
+        'Special Operations F'  : 'SOF',
+        'Territorial Defense F' : 'TDF',
+        'Unmanned Systems F'    : 'USF',
+        'Support Forces'        : 'Support',
+        'Logistics Forces'      : 'Logistic',
+        'Medical Forces'        : 'Medical',
+        'Signal and Cybersec F' : 'SigSec',
+    }
+    
+    buttons = {}
+    markup = types.InlineKeyboardMarkup()
+
+    for regiment, alias in regiments.items():
+        style = None
+        if alias in selection:
+            regiment = "✅ " + regiment
+        if alias in ['Ground','Airforce','USF','Medical',]:
+            style = "success"
+        buttons[alias] = types.InlineKeyboardButton(
+            regiment,
+            callback_data=":".join(["p2:select",alias] + selection),
+            style=style,
+        )
+
+    # Convert items to a list to allow indexing
+    btn_list = list(buttons.items())
+    
+    # print("\n loop start \n--------\n")
+    for i in range(0, len(btn_list), 2): #using 2 item step
+    # Check if there is a next button available
+        if i + 1 < len(btn_list):
+            # print(btn_list[i][0] + " and " + btn_list[i+1][0])
+            markup.add(btn_list[i][1],btn_list[i+1][1])
+        else:
+            # This handles the odd button at the end
+            # print(btn_list[i][0])
+            markup.add(btn_list[i][1])
+
+    btn_confirm = types.InlineKeyboardButton(
+    text = "Confirm Selection",
+    callback_data="p2:confirm selected",
+    style="primary"
+    )
+    markup.add(btn_confirm)
+
+    bot.edit_message_reply_markup(message.chat.id, message.id,reply_markup=markup)
 
 
 #обробка тимчасових кніпок
