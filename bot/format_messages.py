@@ -28,8 +28,8 @@ message_bot_welcome = """
     Welcome to the *TRIADAI−SUS* Framework
     _AI/AR−Driven Strategic Uncertainty & Decision Simulation Environment_
 
-    *TRIADAI−SUS* is a strategic wargaming and decision−support framework designed to strengthen command thinking and improve military strategic planning under uncertainty\.
-    This simulation environment introduces modern Artificial Intelligence methods into the decision−making process and demonstrates how data−driven tools can support commanders at operational and strategic levels\.
+    *TRIADAI−SUS* is a strategic wargaming and decision−support framework designed to strengthen command thinking and improve military strategic planning under uncertainty\\.
+    This simulation environment introduces modern Artificial Intelligence methods into the decision−making process and demonstrates how data−driven tools can support commanders at operational and strategic levels\\.
 
     🎯 Purpose of the Framework
     TRIADAI−SUS is designed for:
@@ -48,7 +48,7 @@ message_bot_welcome = """
 
     🧠 What You Will Experience
     Within the simulation, participants will:
-    • Evaluate alternative Courses of Action \(COA\)
+    • Evaluate alternative Courses of Action \\(COA\\)
     • Observe Win Probability and risk indicators in real time
     • Understand how uncertainty affects operational success
     • Learn to interpret AI−generated recommendations
@@ -60,7 +60,7 @@ message_bot_welcome = """
 message_p1_explain = """
     *Initial Strategic Environment Assessment*
 
-    _Decision Risk Index \(DRI\)_ — Operational Readiness Indicator
+    _Decision Risk Index \\(DRI\\)_ — Operational Readiness Indicator
     At the start of the simulation, the system evaluates the operational environment using four key planning parameters\\.
     These parameters reflect the level of uncertainty, time constraints, and information reliability that will shape your decisions\\.
 
@@ -70,14 +70,14 @@ message_p1_explain = """
     High confidence: 90%
     Moderate confidence: 50%
     Low confidence: 20%
-    `Intelligence_Confidence_dic = {"90%": 0\.9, "50%": 0\.5, "20%": 0\.2}`
+    `Intelligence_Confidence_dic = {"90%": 0\\.9, "50%": 0\\.5, "20%": 0\\.2}`
 
     2\\. Operational Volatility
-    _Describes the level of unpredictability in the environment\._
+    _Describes the level of unpredictability in the environment\\._
     Low volatility: Stable and predictable conditions
     Medium volatility: Changing operational dynamics
     High volatility: Rapid and uncertain developments
-    `Volatility_dic = {"Low": 0\.3, "Medium": 0\.6, "High": 0\.9}`
+    `Volatility_dic = {"Low": 0\\.3, "Medium": 0\\.6, "High": 0\\.9}`
 
     3\\. Maximum Planning Time
     _48 hours — the maximum available time horizon for strategic planning under normal conditions\\. _
@@ -87,11 +87,11 @@ message_p1_explain = """
     Strategic Analysis: 48 hours
     Operational Level: 6 hours
     Crisis Decision: 0\\.5 hours
-    `Time_Pressure_dic = {"Strategic Analysis": 48, "Operational level": 6, "Crisis decision": 0\.5}`
+    `Time_Pressure_dic = {"Strategic Analysis": 48, "Operational level": 6, "Crisis decision": 0\\.5}`
 
-    _Decision Risk Index \(DRI\)_
-    Based on these parameters, the framework calculates the Decision Risk Index \(DRI\) — a quantitative indicator of the decision environment\.
-    The DRI helps commanders understand how difficult, unstable, and time−constrained the situation is before selecting a Course of Action\.
+    _Decision Risk Index \\(DRI\\)_
+    Based on these parameters, the framework calculates the Decision Risk Index \\(DRI\\) — a quantitative indicator of the decision environment\\.
+    The DRI helps commanders understand how difficult, unstable, and time−constrained the situation is before selecting a Course of Action\\.
 
     Operational Environment Classification
     The calculated DRI determines the decision environment:
@@ -106,22 +106,22 @@ message_p1_explain = """
     Time pressure and uncertainty significantly affect decision−making\\.
     _Critical State_
     DRI ≥ 0\\.80
-    The environment is unstable and highly time−sensitive\. Decisions must be made under severe constraints\\.
+    The environment is unstable and highly time−sensitive\\. Decisions must be made under severe constraints\\.
 
     ℹ️ How Monte Carlo works
     • Step 1: The bot picks ONE mission scenario: IC / Volatility / Available time\\.
-    • Step 2: We run 5000 simulations around that scenario, adding uncertainty \(noise\):
+    • Step 2: We run 5000 simulations around that scenario, adding uncertainty \\(noise\\):
     \\- IC varies by ±0\\.05
     \\- Volatility varies by ±0\\.05
     \\- Available time varies by ±1\\.0h
-    • Step 3: Each run computes DRI using weights w1\=0\\.33, w2\=0\\.33, w3\=0\\.33 and Max planning time \= 48h\\.
+    • Step 3: Each run computes DRI using weights w1\\=0\\.33, w2\\=0\\.33, w3\\=0\\.33 and Max planning time \\= 48h\\.
 
     ✅ Output:
-    • Base DRI \(no−noise scenario\)
-    • Mean DRI \(average over all runs\)
-    • P90 DRI \(bad−tail risk\)
-    • Crisis\+Critical % and Critical tail %
-    Meaning: not one forecast — a risk distribution under uncertainty\.
+    • Base DRI \\(no−noise scenario\\)
+    • Mean DRI \\(average over all runs\\)
+    • P90 DRI \\(bad−tail risk\\)
+    • Crisis\\+Critical % and Critical tail %
+    Meaning: not one forecast — a risk distribution under uncertainty\\.
 
     """
 # endregion
@@ -296,7 +296,7 @@ def sens_score_ask(strategic_direction_name: str, P1_simulation_results: str):
         "Evaluating the \"", escape_markdown(strategic_direction_name), "\" strategic direction:\n",
         escape_markdown(P1_simulation_results), # implicit \n in format
         "~                    ~​\n\n",
-        " \> *Which parameter has the greatest impact on the outcome?*"
+        " \\> *Which parameter has the greatest impact on the outcome?*"
     ])
     return message_text
 
@@ -311,13 +311,13 @@ def sens_score_answer(strategic_direction_name: str, sens: dict[str,object], inf
         Time pressure: {sens["scenario"]['TP_key'].display_name}
     Spearman correlation:
         Intel:  {sens["spearman_corr"]['IC']:.2f}, 
-        Volatility: {sens["spearman_corr"]['V']:.2f},  
+        Volatility: {sens["spearman_corr"]['V']:.2f},
         Time pressure: {sens["spearman_corr"]['TP']:.2f}
     Influence share:     
         Intel:  {influence_share['IC']:.2f}, 
         Volatility: {influence_share['V']:.2f}, 
         Time pressure: {influence_share['TP']:.2f}
-    """),
+    """), # type: ignore # pyright: ignore[reportIndexIssue]
     "~                     ~​"
     ])
     return message_text
@@ -329,21 +329,21 @@ def winp_score_ask(strategic_direction_name: str, P1_simulation_results: str):
         "Evaluating the \"", escape_markdown(strategic_direction_name), "\" strategic direction:\n",
         escape_markdown(P1_simulation_results), # implicit \n in format
         "~                    ~​\n\n",
-        " \> *Which course of action has the highest Win Probability?*"
+        " \\> *Which course of action has the highest Win Probability?*"
     ])
     return message_text
 
 def winp_score_answer(strategic_direction_name: str, simulation_parameters:dict[str,object], coa_wp:dict[str,object], rec:str):
 
     IC_key, V_key, TP_key = simulation_parameters["IC"], simulation_parameters["VL"], simulation_parameters["TP"]
-    compare_stats_text = f"Scenario: IC: {IC_key.display_name}\, V: {V_key.display_name}\, TP: {TP_key.display_name}\n"
+    compare_stats_text = f"Scenario: IC: {IC_key.display_name}\\, V: {V_key.display_name}\\, TP: {TP_key.display_name}\n" # type: ignore
     for key, value in coa_wp.items():
-        compare_stats_text += escape_markdown(f"  for {key} CoA, 90 percentile win probability is at {value.get('WinProb_P90'):.2f} with a {value.get('Critical_%')*100:.2f}% critical tail\n")
+        compare_stats_text += escape_markdown(f"  for {key} CoA, 90 percentile win probability is at {value.get('WinProb_P90'):.2f} with a {value.get('Critical_%')*100:.2f}% critical tail\n") # type: ignore
 
     
     message_text = f"""Evaluating the \"{escape_markdown(strategic_direction_name)}\" direction:
 {compare_stats_text}
-{f"According to integral criterion \\(WinProb\_mean − Critical\_tail\\) best course of action is: *{rec}*\\."}
+{f"According to integral criterion \\(WinProb\\_mean − Critical\\_tail\\) best course of action is: *{rec}*\\."}
 ~                     ~​
     """
     print(message_text)
@@ -448,3 +448,133 @@ def build_ar_summary_short(
 # endregion
 
 # print("AR Summary tested")
+
+#region Regiments
+    regiments = {    
+        'Ground Forces'         : 'Ground',
+        'Air Force'             : 'Airforce',
+        'Navy'                  : 'Navy',
+        'Airborne Assault F'    : 'Airborne',
+        'Special Operations F'  : 'SOF',
+        'Territorial Defense F' : 'TDF',
+        'Unmanned Systems F'    : 'USF',
+        'Support Forces'        : 'Support',
+        'Logistics Forces'      : 'Logistic',
+        'Medical Forces'        : 'Medical',
+        'Signal and Cybersec F' : 'SigSec',
+    }
+#endregion
+
+#region Phase two: Regiment parameters
+def regiment_parameters(selection: list[str], raw: bool = False):
+    # print(f"parameters formatting! received: {selection}")
+    regiments = {    
+        'Ground Forces'         : 'Ground',
+        'Air Force'             : 'Airforce',
+        'Navy'                  : 'Navy',
+        'Airborne Assault F'    : 'Airborne',
+        'Special Operations F'  : 'SOF',
+        'Territorial Defense F' : 'TDF',
+        'Unmanned Systems F'    : 'USF',
+        'Support Forces'        : 'Support',
+        'Logistics Forces'      : 'Logistic',
+        'Medical Forces'        : 'Medical',
+        'Signal and Cybersec F' : 'SigSec',
+    }
+    Ground_Forces = {
+        "Combat_unit_readiness": 0.75,
+        "Armored_vehicle_availability": 0.70,
+        "Artillery_readiness": 0.72,
+        "Infantry_strength": 0.78,
+        "Ammunition_sustainability": 0.65,
+        "Mobility_capacity": 0.70,
+        "Terrain_adaptability": 0.68,
+        "Fire_support_availability": 0.73,
+        "Command_stability": 0.80,
+        "Logistics_resilience": 0.70,
+        "Maintenance_capacity": 0.66,
+        "Operational_tempo_sustainability": 0.69
+    }
+
+    Air_Force = {
+        "Aircraft_availability": 0.68,
+        "Sortie_generation_rate": 0.64,
+        "Air_defense_coverage": 0.72,
+        "Pilot_readiness": 0.75,
+        "Precision_strike_capability": 0.67,
+        "Airbase_survivability": 0.62,
+        "Fuel_sustainability": 0.66,
+        "Maintenance_turnaround": 0.63,
+        "Command_stability": 0.78,
+        "Logistics_resilience": 0.69,
+        "Maintenance_capacity": 0.65,
+        "Operational_tempo_sustainability": 0.64
+    }
+
+    Unmanned_Forces = {
+        "Drone_availability": 0.77,
+        "Operator_readiness": 0.74,
+        "EW_resistance": 0.61,
+        "Communication_reliability": 0.68,
+        "ISR_coverage": 0.79,
+        "Battery_power_sustainability": 0.66,
+        "Autonomy_capability": 0.63,
+        "Replacement_rate": 0.72,
+        "Command_stability": 0.76,
+        "Logistics_resilience": 0.67,
+        "Maintenance_capacity": 0.64,
+        "Operational_tempo_sustainability": 0.71
+    }
+
+    Medical_Forces = {
+        "Medical_personnel_availability": 0.73,
+        "Evacuation_capacity": 0.69,
+        "Hospital_bed_capacity": 0.71,
+        "Surgical_throughput": 0.68,
+        "Medical_supply_sustainability": 0.66,
+        "Transport_evacuation_time_efficiency": 0.64,
+        "Recovery_rate": 0.72,
+        "Staff_fatigue_resistance": 0.60,
+        "Command_stability": 0.77,
+        "Logistics_resilience": 0.70,
+        "Maintenance_capacity": 0.62,
+        "Operational_tempo_sustainability": 0.65
+    }
+    def pretty_display(force_parameters: dict[str,float]) -> str:
+        output = ""
+        for param, value in force_parameters.items():
+            output += f"{param.replace("_"," ").capitalize()}: {value:.2f}\n"
+        # print(f"-<Attention!>-")
+        # print(output)
+        return "```\n" + escape_markdown(output) + "\n```"
+
+    parameters = {
+        'Ground Forces'         : Ground_Forces,
+        'Air Force'             : Air_Force,
+        'Navy'                  : None,
+        'Airborne Assault F'    : None,
+        'Special Operations F'  : None,
+        'Territorial Defense F' : None,
+        'Unmanned Systems F'    : Unmanned_Forces,
+        'Support Forces'        : None,
+        'Logistics Forces'      : None,
+        'Medical Forces'        : Medical_Forces,
+        'Signal and Cybersec F' : None,
+    }
+    message_text = ""
+
+    print("-----startmainloop")
+    for regiment, alias in regiments.items():
+        print(regiment)
+        if alias in selection:
+            # print(f"displayin {regiment} parameters")
+            if raw:
+                message_text += f"{regiment} parameters: \n ```python\n{str(parameters[regiment])\
+                                                                            .replace('{','{\n\t')\
+                                                                            .replace(',','\n\t')\
+                                                                            .replace('}','\n}')\
+                                                                        }```\n\n"
+            else:
+                message_text += f"{regiment} parameters: \n {pretty_display(parameters[regiment])}\n\n"
+    return message_text
+#endregion

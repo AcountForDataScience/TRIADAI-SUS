@@ -788,7 +788,7 @@ You were playing as {name} on {direction} direction."
 
     # bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
     markup = quick_markup({
-        'Button Text' : {'callback_data': 'p2:select regiments'}
+        'Proceed to Phase 2' : {'callback_data': 'p2:select regiments'}
     }, row_width = 1)
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id,reply_markup=markup)
 
@@ -798,7 +798,8 @@ def handle_phase_two_callbacks(call):
     # bot.answer_callback_query(call.id, text=f"Processing {callback}...")
 
     if callback == "select regiments":
-        phase_two_select_regiments(call.message)
+        bot.edit_message_text("Please select the regiments required for this operation.",call.message.chat.id, call.message.id)
+        phase_two_select_regiments(call.message, [])
     elif callback == "select":
         regiment = call.data.split(':')[2]
         selection = call.data.split(':')[3:]
@@ -827,12 +828,14 @@ def handle_phase_two_callbacks(call):
         phase_two_select_regiments(call.message, selection)
     elif callback == "confirm selected":
         bot.answer_callback_query(call.id, text=f"Selection confirmed!")
+        selection = call.data.split(':')[2:]
+        phase_two_regiment_info(call.message, selection)
     else:
         # Fallback or generic pass
         pass
 
     bot.answer_callback_query(call.id, text=f"Processed {callback}...")
-    print(f"Universal Handler caught: {callback}")
+    print(f"Universal P2 Handler caught: {callback}")
 
 
 @bot.message_handler(commands=["phasetwo"])
@@ -863,7 +866,7 @@ def phase_two_skip(message):
 
 
 
-def phase_two_select_regiments(message, selection: list):
+def phase_two_select_regiments(message, selection: list[str]):
     user_id = message.chat.id
     if not strategic_direction_name.get(user_id):
         strategic_direction_name[user_id] = 'test_direction'
@@ -915,7 +918,7 @@ def phase_two_select_regiments(message, selection: list):
 
     btn_confirm = types.InlineKeyboardButton(
     text = "Confirm Selection",
-    callback_data="p2:confirm selected",
+    callback_data=":".join(["p2:confirm selected"]+selection),
     style="primary"
     )
     markup.add(btn_confirm)
@@ -938,6 +941,34 @@ def handle_placeholder(call):
         pass
 
     print(f"Universal Handler caught: {callback}")
+
+def phase_two_regiment_info(message, selection):
+
+    message_text = getmessage.regiment_parameters(selection,raw=True)
+    bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode="MarkdownV2")
+
+    # # region old version  
+    # regiments = {    
+    #     'Ground Forces'         : 'Ground',
+    #     'Air Force'             : 'Airforce',
+    #     'Navy'                  : 'Navy',
+    #     'Airborne Assault F'    : 'Airborne',
+    #     'Special Operations F'  : 'SOF',
+    #     'Territorial Defense F' : 'TDF',
+    #     'Unmanned Systems F'    : 'USF',
+    #     'Support Forces'        : 'Support',
+    #     'Logistics Forces'      : 'Logistic',
+    #     'Medical Forces'        : 'Medical',
+    #     'Signal and Cybersec F' : 'SigSec',
+    # }
+    # message_text = "selected: \n"
+
+    # for regiment, alias in regiments.items():
+    #     if alias in selection:
+    #         message_text += regiments[regiment] + "\n"
+    # bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode=None)
+    # # endregion
+        
 
 
 # виклик АР підсумку
