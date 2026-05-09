@@ -158,37 +158,6 @@ def format_phase1_message(mc_result: dict) -> str:
     )
 
 
-
-# -------------------------
-# 5) One-shot: обрати сценарій + порахувати + текст
-# -------------------------
-# def run_phase1(
-#     Intelligence_Confidence_dic,
-#     Volatility_dic,
-#     Time_Pressure_dic,
-#     Max_Planning_Time,
-#     n=10000,
-#     w1=0.33, w2=0.33, w3=0.33,
-#     noise_ic=0.05, noise_v=0.05, noise_time=1.0
-# ) -> str:
-#     IC_key, V_key, TP_key = Shuffling_IC_V_TP(Intelligence_Confidence_dic, Volatility_dic, Time_Pressure_dic)
-
-#     mc = Monte_Carlo_DRI_fixed_keys(
-#         Intelligence_Confidence_dic=Intelligence_Confidence_dic,
-#         Volatility_dic=Volatility_dic,
-#         Time_Pressure_dic=Time_Pressure_dic,
-#         Max_Planning_Time=Max_Planning_Time,
-#         Intelligence_Confidence_key=IC_key,
-#         Volatility_key=V_key,
-#         Time_Pressure_key=TP_key,
-#         n=n,
-#         w1=w1, w2=w2, w3=w3,
-#         noise_ic=noise_ic, noise_v=noise_v, noise_time=noise_time
-#     )
-
-#     return format_phase1_message(mc)
-
-
 def explain_monte_carlo_phase1(
     n: int = 5000,
     Max_Planning_Time: int | float = 48,
@@ -300,7 +269,7 @@ def sens_score_ask(strategic_direction_name: str, P1_simulation_results: str):
     ])
     return message_text
 
-def sens_score_answer(strategic_direction_name: str, sens: dict[str,object], influence_share: dict[str,float]):
+def sens_score_answer(strategic_direction_name: str, sens: dict[str,dict], influence_share: dict[str,float]):
     
     message_text = "".join([
     escape_markdown(

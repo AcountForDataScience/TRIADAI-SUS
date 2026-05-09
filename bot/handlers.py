@@ -229,7 +229,7 @@ def simulation_phase_one(chat_id):
 
         #shuffle parameters - later possibly define parameters as well
     # print(f"alert\n{Intelligence_Confidence}\n{Volatility}\n{Time_Pressure}\n")
-    IC, V, TP = P1_Shuffle(Intelligence_Confidence, Volatility, Time_Pressure)
+    IC, V, TP = P1_Shuffle(Intelligence_Confidence, Volatility, Time_Pressure) # type: ignore
     run_sample = 5000
 
     simulation_parameters[chat_id] = {
@@ -753,7 +753,7 @@ def simulation_p1_AR_summary(message):
     recommendation = {"coa": "Regroup", "why": "lowest P90 + lowest Critical"}
     sensitivity = {"order": ["TP", "V", "IC"]}
 
-    lines = build_ar_summary_short(scenario_keys, dri_stats, coa_rows, recommendation, sensitivity)
+    lines = build_ar_summary_short(scenario_keys, dri_stats, coa_rows, recommendation, sensitivity) # type: ignore
 
     # Вивід як 4 рядки (під Telegram або AR HUD)
     message_text = "\n".join(lines)
@@ -933,9 +933,9 @@ def handle_placeholder(call):
     bot.answer_callback_query(call.id, text=f"Processing {callback}...")
 
     if callback == "btn_a":
-        handle_logic_a(call.message)
+        handle_logic_a(call.message) # type: ignore
     elif callback == "btn_b":
-        handle_logic_b(call.message)
+        handle_logic_b(call.message) # type: ignore
     else:
         # Fallback or generic pass
         pass
@@ -975,7 +975,7 @@ def phase_two_regiment_info(message, selection):
 @bot.callback_query_handler(func=lambda call: call.data == "AR_summary")
 def handle_AR_summary(call):
     bot.answer_callback_query(call.id)
-    AR_summary = AR_summary_placeholder(simulation_results)
+    AR_summary = AR_summary_placeholder(simulation_results) # type: ignore
 
     markup = types.InlineKeyboardMarkup()
     restart = types.InlineKeyboardButton("Restart", callback_data="init_Start")
@@ -985,56 +985,56 @@ def handle_AR_summary(call):
 
 
 Save_Dataframe = False
-if Save_Dataframe:  
-    flattened_rows = []
-    for run_key, data in score_table.items():
+# if Save_Dataframe:  
+#     flattened_rows = []
+#     for run_key, data in score_table.items():
 
-        print(f"raw data: \n {data} \n------------------")
-        # 1. Extract metadata by index
-        user_id   = data[0]
-        user_name = data[1]
-        run_id    = data[2]
-        dirname   = data[3]
-        datestamp = data[4]
+#         print(f"raw data: \n {data} \n------------------")
+#         # 1. Extract metadata by index
+#         user_id   = data[0]
+#         user_name = data[1]
+#         run_id    = data[2]
+#         dirname   = data[3]
+#         datestamp = data[4]
 
-        # 2. Iterate through the remaining items (the scores)
-        # data[5:] takes everything from the 6th element to the end
-        for score_tuple in data[5:]:
-            print(score_tuple)
-            value, test_name, *context = score_tuple
+#         # 2. Iterate through the remaining items (the scores)
+#         # data[5:] takes everything from the 6th element to the end
+#         for score_tuple in data[5:]:
+#             print(score_tuple)
+#             value, test_name, *context = score_tuple
 
-            flattened_rows.append({
-                "user_id": user_id,
-                "user_name": user_name,
-                "date": datestamp,
-                "run_id": run_id,
-                "direction": dirname,
-                "test_name": test_name,
-                "score": value,
-                "context": context
-            })
+#             flattened_rows.append({
+#                 "user_id": user_id,
+#                 "user_name": user_name,
+#                 "date": datestamp,
+#                 "run_id": run_id,
+#                 "direction": dirname,
+#                 "test_name": test_name,
+#                 "score": value,
+#                 "context": context
+#             })
 
-    # 3. Create the DataFrame
-    df = pd.DataFrame(flattened_rows)
+#     # 3. Create the DataFrame
+#     df = pd.DataFrame(flattened_rows)
 
-    if os.getenv("COLAB_RELEASE_TAG"):
-        from google.colab import drive
-        #if not on Render, importing drive lib for files
-        drive.mount('/content/drive/')
-        save_path = '/content/drive/MyDrive/Colab/Telegram test/'
-    elif os.getenv("RENDER"):
-        save_path = '' #saving into current working directory
-        # unless we want to invest into
-    else:
-        save_path = os.path.join(os.getcwd(), 'temp')
-        # saves into CWD / temp subpath
+#     if os.getenv("COLAB_RELEASE_TAG"):
+#         from google.colab import drive
+#         #if not on Render, importing drive lib for files
+#         drive.mount('/content/drive/')
+#         save_path = '/content/drive/MyDrive/Colab/Telegram test/'
+#     elif os.getenv("RENDER"):
+#         save_path = '' #saving into current working directory
+#         # unless we want to invest into
+#     else:
+#         save_path = os.path.join(os.getcwd(), 'temp')
+#         # saves into CWD / temp subpath
 
-    scorefile = save_path + 'scores.csv'
-    print(scorefile)
-    if os.path.isfile(scorefile):
-        print("Appending scores")
-        # mode = 'a' for append
-        df.to_csv(scorefile, mode='a', index=False, header=False)
-    else:
-        print("File not found, creating new...")
-        df.to_csv(scorefile, encoding='utf-8', index=False)
+#     scorefile = save_path + 'scores.csv'
+#     print(scorefile)
+#     if os.path.isfile(scorefile):
+#         print("Appending scores")
+#         # mode = 'a' for append
+#         df.to_csv(scorefile, mode='a', index=False, header=False)
+#     else:
+#         print("File not found, creating new...")
+#         df.to_csv(scorefile, encoding='utf-8', index=False)

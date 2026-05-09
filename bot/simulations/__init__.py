@@ -17,3 +17,17 @@ from .phase_one import (
     Monte_Carlo_Compare_COA_With_WinProb_fixed_keys as P1_WinProb,
     Sensitivity_Analysis_DRI_fixed_keys as P1_Sensitivity_Analysis,
 )
+
+from .forces import (
+    # Force Master Class
+    Force,
+    # pre-Defined Forces
+    Ground,
+    Airforce,
+    USF,
+    Medical,
+)
+
+from .phase_two import(
+    Monte_Carlo_Strategic_Readiness_All_Forces as P2_Strategic_Readiness,
+)

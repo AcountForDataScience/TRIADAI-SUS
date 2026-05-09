@@ -102,9 +102,9 @@ def Shuffling_IC_V_TP(
     Volatility: Enum,
     Time_Pressure: Enum,):
     # Enums don't use .keys(), you just cast the class to a list
-    IC_member = random.choice(list(Intelligence_Confidence))
-    V_member = random.choice(list(Volatility))
-    TP_member = random.choice(list(Time_Pressure))
+    IC_member = random.choice(list(Intelligence_Confidence))    # type: ignore
+    V_member = random.choice(list(Volatility))                  # type: ignore
+    TP_member = random.choice(list(Time_Pressure))              # type: ignore
 
     return IC_member, V_member, TP_member
 # endregion
@@ -131,7 +131,10 @@ def Shuffling_IC_V_TP(
 
 # endregion
 
+
+
 # region CoA settings
+# #Maybe we eventually allow supplying the CoA parameters externally?
 # COA_settings = {
 #     "Attack": {"V_multiplier": 1.15, "time_multiplier": 0.8},
 #     "Regroup": {"V_multiplier": 0.85, "time_multiplier": 1.2}
@@ -139,6 +142,8 @@ def Shuffling_IC_V_TP(
 # endregion
 
 # print("Key Parameters tested")
+
+##----- Simulation Functions -----##
 
 ##----- Monte Carlo (fixed scenario) -----##
 
