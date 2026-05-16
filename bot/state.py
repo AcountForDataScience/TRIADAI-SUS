@@ -3,6 +3,9 @@
 # they get filled in the following manner
 # <varname> = {<chat_id>: <data dic>}
 
+#per-user gamemode toggle.
+gamemode = {}
+
 
 simulation_results      = {}
 simulation_parameters   = {}

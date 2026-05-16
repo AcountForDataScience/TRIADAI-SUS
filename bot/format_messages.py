@@ -29,6 +29,31 @@ from bot.simulations import (
 
 from telebot.formatting import escape_markdown
 
+# region Formatting options
+
+# from telebot.formatting import (
+#     format_text,
+#     # markdown formatting
+#     # should be easy to replace w/ html as needed
+#     escape_markdown as esc,
+#     mbold as        bold,
+#     mitalic as      italic,
+#     mstrikethrough as strike,
+#     munderline as   uline,
+#     mspoiler as     spoiler,
+#     mcite as        cite,
+#     mlink as        link,
+#     mcode as        code,
+# )
+# # Example use:
+# message = format_text(
+#     "welcome to the", bold("TRIAD AI SUS"), esc("strategic simulation bot."),
+#     "\nit offers impressive array of wonderful things"
+#     separator=" "
+# )
+
+# endregion
+
 linebreak : str = "~                     ~​" # MarkdownV2 line breakw/ zero width space
 
 # region Welcome message
@@ -570,7 +595,7 @@ def format_strategic_readiness(results:dict[str,dict[str,float]]):
                 result.append(f"{key.replace('_',' ')}: {value:.2f}")
             else:
                 levels = []
-                for level, share in value.items():
+                for level, share in value.items(): # type: ignore
                     levels.append(f"{level.replace('_',' ')}: {share:.2%}")
                 result.append(" | ".join(levels))
         message.append("\n\t".join(result))

@@ -5,3 +5,6 @@ converted_notebook.py
 __pycache__/
 *.py[codz]
 *$py.class
+
+# Playground file for manual testing
+bot/manual_test.py

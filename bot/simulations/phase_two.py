@@ -1,6 +1,6 @@
 import numpy as np
 
-from simulations.forces import Force
+from .forces import Force
 
 def Monte_Carlo_Strategic_Readiness(
         # force_name : str,

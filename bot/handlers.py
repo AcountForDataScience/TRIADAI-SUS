@@ -23,10 +23,12 @@ from bot.simulations import (
 
 # bot instance so I can use decorators 
 from bot.instance import bot
+# from bot.instance import bot, allowed_gamemodes
 
 # global variables
 # to do: replace with a database at some later point
 from bot.state import (
+    gamemode,
     simulation_results,
     simulation_parameters,
     strategic_direction_name,
@@ -53,6 +55,32 @@ from bot.php_send import send_to_php, AR_format # stuff to send messages to AR g
 ###########
 ## LOGIC ##
 ###########
+
+# Settings
+
+# початковий екран
+@bot.message_handler(commands=["setmode"])
+def set_gamemode(message):
+    user_id = message.chat.id
+    text_parts = message.text.split()
+    
+    # Check if the user provided an argument after the command
+    if len(text_parts) < 2:
+        bot.reply_to(message, "⚠️ Please specify a mode. Example: /setmode default")
+        return
+    mode = text_parts[1].lower()
+    # acceptable gamemodes:
+    allowed_gamemodes = ['default',
+             'command',
+             'test',]
+    if mode in allowed_gamemodes:
+        gamemode[user_id] = mode
+        bot.reply_to(message, f"{mode.capitalize()} mode is set.")
+    else:
+        bot.reply_to(message, "⚠️ Please specify a valid mode. Example: /setmode default")
+    return
+
+# || початковий екран
 
 ##-----------------------------##
 #   Інформаційні повідомлення   #
@@ -91,9 +119,13 @@ def handle_send_main_menu(call):
 # початковий екран
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
-    # username handling
-    global custom_name
+    # username handling via bot.state.custom_name
     user_id = message.chat.id
+    
+    # set default gamemode
+    # if set previously, does not overwrite.
+    gamemode[user_id] = gamemode.setdefault(user_id,'default')
+    
     if not custom_name.get(user_id):
         next = bot.send_message(message.chat.id, "You've launched the Strategic Uncertainty Simulation bot. Please enter your name or team name.")
         bot.register_next_step_handler(next, rename_user)
@@ -219,8 +251,8 @@ def simulation_phase_one(chat_id):
     # #if we transition to custom keys or values, new definition could be:
     # def simulation_phase_one(message, IC_key, V_key, TP_key):
 
-    global simulation_parameters #in case we need to circle back to parameters
-    global simulation_results #results are stored here per-user
+    # global simulation_parameters #in case we need to circle back to parameters
+    # global simulation_results #results are stored here per-user
 
     # #this requires definitions of the following variables somewhere else:
         # Intelligence_Confidence_dic
@@ -770,8 +802,8 @@ def simulation_p1_conclude(message):
 
     # temporarily using this to display scores
 
-    global current_score
-    global score_table
+    # global current_score
+    # global score_table
     user_id = message.chat.id
     score = 0
     name = current_score[user_id][1]
@@ -782,17 +814,81 @@ def simulation_p1_conclude(message):
 
     for i in range(5, len(current_score[user_id])):
         score += current_score[user_id][i][0]
+
+    if gamemode[user_id] == 'test':
+        print("Lookie here! Scores!")
+        print(current_score[user_id])
     
-    message_text = f"Total score is {score} points for run ID: `{run_id}` ({datestamp})\n\
+    if gamemode[user_id] == 'command' or 'test':
+        message_text = f"Total score is {score} points for run ID: `{run_id}` ({datestamp})\n\
 You were playing as {name} on {direction} direction."
+    else:
+        message_text = "your scores were recorded"
+    
     # print(message_text)
 
 
     # bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
+    send_score_call_id = ":".join(['send_score',run_id])
     markup = quick_markup({
-        'Proceed to Phase 2' : {'callback_data': 'p2:select regiments'}
+        'Proceed to Phase 2' : {'callback_data': 'p2:select regiments'},
+        'Send scores' : {'callback_data': send_score_call_id}, 
     }, row_width = 1)
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id,reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("send_score"))
+def handle_send_scores(call):
+    bot.answer_callback_query(call.id)
+    user_id = call.message.chat.id
+    run_id = call.data.split(':')[1]
+    run_scores = score_table[run_id]
+    score = 0
+    name = run_scores[1]
+    direction = run_scores[3]
+    datestamp = run_scores[4]
+
+    for i in range(5, len(run_scores)):
+        score += run_scores[i][0]
+    
+    sim_params = run_scores[5][2]
+    IC,VL,TP,PT = sim_params['IC'],sim_params['VL'],sim_params['TP'],sim_params['PT']
+    # base_dri = (1 - IC.value) * 0.33 + VL.value * 0.33 + TP.value * 0.33 # workaround
+    # sim_data = run_scores[5][?]
+    # p90,mean,tail = sim_data[6],sim_data[5],
+    mc = P1_Monte_Carlo(IC,VL,TP)
+    base,mean,p90,tail = mc["base_dri"],mc["mean_dri"],mc["p90"],mc["critical_tail"]
+    
+    # correct answers for WinProb and Sens analysis
+    if run_scores[5][1] == 'Sensitivity':
+        results,sens = run_scores[6][3],run_scores[5][3] 
+    else: 
+        results,sens = run_scores[5][3],run_scores[6][3] 
+    wscores = {
+        coa: results[coa]["WinProb_Mean"] - results[coa]["Critical_%"]
+        for coa in results
+    }
+    WinP = max(wscores.keys(), key=lambda c: wscores[c])
+    Sens = sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True)[0][0]
+
+    parameters = {
+        "Team_Name"     : name,
+        "Direction"     : direction,
+        "total_score"   : score,
+        "date"          : datestamp,
+        "Intelligence Confidence": IC.display_name, 
+        "Volatility"        : VL.display_name, 
+        "Time Pressure"     : TP.display_name, 
+        # "Max Planning Time": 48,
+        "DRI"       : base,
+        "DRI_p90"   : p90,
+        "DRI_mean"  : mean,
+        "Critical Tail"     : tail,  
+        "Win probability"   : WinP, 
+        "Sensitivity Analysis": Sens,
+    }
+    if gamemode[user_id] == 'test':
+        print(AR_format(parameters,72))
+    send_to_php(AR_format(parameters,60))
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p2:"))
 def handle_phase_two_callbacks(call):

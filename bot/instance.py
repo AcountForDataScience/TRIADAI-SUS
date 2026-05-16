@@ -1,13 +1,22 @@
 import telebot, os
+# from os import getenv
 
 #--------- Load Environment ---------#
-# used for local testing
+
+# used to separate local testing from production run
 if os.getenv('RENDER'):
     print("Running on Render")
 else:
     from dotenv import load_dotenv
     load_dotenv()
     print(os.getenv('Test_env'))
+
+# allowed_gamemodes = [
+#         'default',
+#         'command',
+# ]
+# if os.getenv('Test_env'):
+#     allowed_gamemodes.append('test')
 
 #--------- API KEY ---------#
 print("acquiring tokens")
