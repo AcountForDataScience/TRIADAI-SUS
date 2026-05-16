@@ -48,6 +48,8 @@ from bot.format_messages import (
 )
 import bot.format_messages as getmessage
 
+from bot.php_send import send_to_php, AR_format # stuff to send messages to AR goggles 
+
 ###########
 ## LOGIC ##
 ###########

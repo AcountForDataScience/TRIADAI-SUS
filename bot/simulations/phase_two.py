@@ -3,7 +3,7 @@ import numpy as np
 from simulations.forces import Force
 
 def Monte_Carlo_Strategic_Readiness(
-        force_name : str,
+        # force_name : str,
         params: dict[str, float],
         combat_keys: list[str],
         baseline_keys: list[str],
@@ -47,7 +47,7 @@ def Monte_Carlo_Strategic_Readiness(
     }
 
     return {
-        "force_name": force_name,
+        # "force_name": force_name,
         "mean_sri": float(np.mean(results)),
         "p10": float(np.percentile(results, 10)),
         "p50_median": float(np.percentile(results, 50)),
@@ -69,7 +69,7 @@ def Monte_Carlo_Strategic_Readiness_All_Forces(
 
     for force_name, config in forces_config.items():
         result = Monte_Carlo_Strategic_Readiness(
-            force_name=force_name,
+            # force_name=force_name,
             params=config["params"],
             combat_keys=config["combat_keys"],
             baseline_keys=config["baseline_keys"],

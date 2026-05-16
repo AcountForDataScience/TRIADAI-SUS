@@ -1,17 +1,25 @@
 # from telebot.formatting import escape_markdown
 # from simulations import(
 from bot.simulations import (
+    # Phase One Imports
     Intelligence_Confidence ,
     Volatility              ,
     Time_Pressure           ,
     # Max_Planning_Time       , # defaults to "=48" hours
     Decision_Risk_Index     ,
+    # Phase two Imports
+    Force,
 )
 # from bot.simulations import P1_Shuffle as Shuffle
 # from bot.simulations import P1_Monte_Carlo as Monte_Carlo_DRI_fixed_keys
 # from bot.simulations import P1_Compare_CoA as Monte_Carlo_Compare_COA_fixed_keys
 # from bot.simulations import P1_WinProb as Monte_Carlo_Compare_COA_With_WinProb_fixed_keys
 # from bot.simulations import P1_Sensitivity_Analysis as Sensitivity_Analysis_DRI_fixed_keys
+
+# from simulations import P2_Strategic_Readiness
+# from simulations import (Ground,Airforce,USF,Medical)
+
+
 
 # Intelligence_Confidence_key, Volatility_key, Time_Pressure_key = Shuffle(
 #     Intelligence_Confidence ,
@@ -435,6 +443,7 @@ def build_ar_summary_short(
 #endregion
 
 #region Phase two: Regiment parameters
+# to do: replace this function with readingfrom source
 def regiment_parameters(selection: list[str], raw: bool = False):
     # print(f"parameters formatting! received: {selection}")
     regiments = {    
@@ -546,4 +555,34 @@ def regiment_parameters(selection: list[str], raw: bool = False):
             else:
                 message_text += f"{regiment} parameters: \n {pretty_display(parameters[regiment])}\n\n"
     return message_text
+
+#endregion
+
+#region Regiment Readiness
+def format_strategic_readiness(results:dict[str,dict[str,float]]):
+    message :list[str] = []
+    for name, params in results.items():
+        result = []
+        result.append(f"{name} evaluation:\n")
+        for key, value in params.items():
+            # print(f"{value}: {type(value)}")
+            if isinstance(value, int|float):
+                result.append(f"{key.replace('_',' ')}: {value:.2f}")
+            else:
+                levels = []
+                for level, share in value.items():
+                    levels.append(f"{level.replace('_',' ')}: {share:.2%}")
+                result.append(" | ".join(levels))
+        message.append("\n\t".join(result))
+
+    return "\n".join(message)
+
+# config : dict[str,Force] = {
+#     Airforce["name"] : Airforce,
+#     Medical["name"] : Medical
+# }
+
+# result = P2_Strategic_Readiness(config)
+# print(result)
+# print(format_strategic_readiness(result))
 #endregion
