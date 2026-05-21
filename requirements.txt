@@ -1,4 +1,8 @@
 pyTelegramBotAPI
 pandas
-numpy
+numpy #used in phase 2
 # lifelines
+
+# we need these for php_send
+requests
+pycryptodome
