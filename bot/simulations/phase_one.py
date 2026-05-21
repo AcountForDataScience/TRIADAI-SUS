@@ -528,4 +528,13 @@ def Sensitivity_Analysis_DRI_fixed_keys(
 # print("Sensitivity Analysis tested")
 
 
+# IC,V,TP = Shuffling_IC_V_TP(Intelligence_Confidence, Volatility, Time_Pressure)
 
+# results =  Monte_Carlo_DRI_fixed_keys(IC,V,TP)
+# print(f"mc1:\n{results}")
+# results, best = Monte_Carlo_Compare_COA_fixed_keys(IC,V,TP)
+# print(f"mc2:\n{results}\nbest:{best}")
+# results, best = Monte_Carlo_Compare_COA_With_WinProb_fixed_keys(IC,V,TP)
+# print(f"mc3:\n{results}\nbest:{best}")
+# sens = Sensitivity_Analysis_DRI_fixed_keys(IC,V,TP)
+# print(f"sens\n{sens}")

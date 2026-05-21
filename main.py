@@ -1,7 +1,7 @@
 from bot import bot 
 from bot import handlers #importing handlers registers them
 
-print(f"<info>: Telegram bot {{{bot.bot_id}}} is initialized")
+print(f"<info>: Telegram bot @{bot.get_me().username} {{{bot.bot_id}}} is initialized")
 
 #--------- START BOT ---------#
 if __name__ == "__main__": # Gatekeeper function

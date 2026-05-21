@@ -80,7 +80,7 @@ params = {
     "Time Pressure": "Strategic",
     "Decision Risk Index": 12,
     "Hope": "Gone",
-    "Smartassery": .23456789,
+    "smartness": .23456789,
 }
 
 # print(AR_format(params))
