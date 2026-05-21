@@ -23,4 +23,4 @@ print("acquiring tokens")
 bot_token = os.getenv('BOT_TOKEN')
 
 #initiate the telegram bot. #can update to "MARKDOWN" parse mode for simple Rich text capabilites
-bot = telebot.TeleBot(bot_token, parse_mode=None)
+bot = telebot.TeleBot(bot_token, parse_mode=None) # type: ignore

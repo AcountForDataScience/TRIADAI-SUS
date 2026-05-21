@@ -52,6 +52,21 @@ import bot.format_messages as getmessage
 
 from bot.php_send import send_to_php, AR_format # stuff to send messages to AR goggles 
 
+# region set commans
+    # currently unused. Might be useful down the line for scaling.
+    
+# bot.set_my_commands([
+#     # types.BotCommand("command","description"),
+ 
+#     types.BotCommand("start","Starts new Simulation"),
+#     # types.BotCommand("exit","Stops the bot. Development only."),
+#     types.BotCommand("rename","Set or Change your Team name"),
+#     types.BotCommand("setmode","Set your gamemode. For example: /gamemode Command or /gamemode Default"),
+#     # types.BotCommand("command","description"),
+# ])
+
+# endregion
+
 ###########
 ## LOGIC ##
 ###########
