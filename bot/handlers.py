@@ -16,6 +16,8 @@ from bot.simulations import (
     P1_Compare_CoA,
     P1_WinProb,
     P1_Sensitivity_Analysis,
+    #P2 functions
+    P2_Strategic_Readiness,
 )
 
 # print("\nLOOK HERE:")
@@ -627,6 +629,9 @@ def simulation_p1_score_sens(message,answer):
         print(f"SENSITIVITY:\n{save_sens}")
         print(f"simresults:\n{simulation_results[user_id]['P1_raw']}")
 
+    if gamemode[user_id] == 'default':
+        message_text = "your answer has been recorded"
+
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id, parse_mode="MarkdownV2")
     simulation_phase_one_analyze(message)
 
@@ -717,6 +722,9 @@ def simulation_p1_score_winp(message,answer):
     simulation_results[user_id]['P1_raw']['WinP'] = WinP
     if gamemode[user_id] == 'test':
         print(f"WinProb:\n{WinP}")
+
+    if gamemode[user_id] == 'default':
+        message_text = "your answer has been recorded"
     
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id, parse_mode="MarkdownV2")
     simulation_phase_one_analyze(message)
@@ -886,7 +894,7 @@ def simulation_p1_conclude(message):
         print("Lookie here! Scores!")
         print(current_score[user_id])
     
-    if gamemode[user_id] == 'command' or 'test':
+    if gamemode[user_id] in ('command', 'test'):
         message_text = f"Total score is {score} points for run ID: `{run_id}` ({datestamp})\n\
 You were playing as {name} on {direction} direction."
     else:
@@ -959,6 +967,8 @@ def handle_send_scores(call):
         print(AR_format(parameters,72))
     send_to_php(AR_format(parameters,60))
 
+# region Phase Two
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p2:"))
 def handle_phase_two_callbacks(call):
     callback = call.data.split(':')[1] #split the function and take second part only
@@ -996,7 +1006,18 @@ def handle_phase_two_callbacks(call):
     elif callback == "confirm selected":
         bot.answer_callback_query(call.id, text=f"Selection confirmed!")
         selection = call.data.split(':')[2:]
+        phase_two_selection_confirmed(call.message, selection)
+        # phase_two_regiment_info(call.message, selection)    
+    elif callback == "selection info":
+        bot.answer_callback_query(call.id)
+        selection = call.data.split(':')[2:]
         phase_two_regiment_info(call.message, selection)
+    elif callback == "back to p2":
+        bot.answer_callback_query(call.id)
+        phase_two_next(call.message)
+    elif callback == "readiness":
+        bot.answer_callback_query(call.id)
+        phase_two_MC(call.message)
     else:
         # Fallback or generic pass
         pass
@@ -1008,10 +1029,10 @@ def handle_phase_two_callbacks(call):
 @bot.message_handler(commands=["phasetwo"])
 def phase_two_skip(message):
     user_id = message.chat.id
-    if not strategic_direction_name.get(user_id):
-        strategic_direction_name[user_id] = 'test_direction'
-    if not custom_name.get(user_id):
-        custom_name[user_id] = 'test_user'
+    gamemode.setdefault(user_id, 'default')
+    strategic_direction_name.setdefault(user_id, 'test_direction')
+    simulation_parameters.setdefault(user_id, {})
+    custom_name.setdefault(user_id, 'test_user')
 
     message_text = "Please select the regiments required for this operation."
 
@@ -1061,6 +1082,7 @@ def phase_two_select_regiments(message, selection: list[str]):
         style = None
         if alias in selection:
             regiment = "✅ " + regiment
+        #hardcoded "allowed" Forces
         if alias in ['Ground','Airforce','USF','Medical',]:
             style = "success"
         buttons[alias] = types.InlineKeyboardButton(
@@ -1092,51 +1114,68 @@ def phase_two_select_regiments(message, selection: list[str]):
 
     bot.edit_message_reply_markup(message.chat.id, message.id,reply_markup=markup)
 
+def phase_two_selection_confirmed(message, selection):
+    user_id = message.chat.id
+    simulation_parameters[user_id]['P2_raw'] = {"selection": selection}
+    if gamemode[user_id] == 'test':
+        print(simulation_parameters[user_id]['P2_raw'])
+    phase_two_next(message)
 
-#обробка тимчасових кніпок
-@bot.callback_query_handler(func=lambda call: call.data.startswith("p1_placeholder:"))
-def handle_placeholder(call):
-    callback = call.data.split(':')[1] #split the function and take second part only
-    bot.answer_callback_query(call.id, text=f"Processing {callback}...")
+def phase_two_next(message):
+    user_id = message.chat.id
+    markup = types.InlineKeyboardMarkup()
+    btn_readiness = types.InlineKeyboardButton(
+    text = "Evaluate Readiness",
+    callback_data="p2:readiness",
+    # style="primary"
+    )
+    btn_info = types.InlineKeyboardButton(
+    text = "get forces info",
+    callback_data=":".join(["p2:selection info"]+simulation_parameters[user_id]['P2_raw']['selection']),
+    # style="primary"
+    )
+    markup.add(btn_readiness, btn_info)
 
-    if callback == "btn_a":
-        handle_logic_a(call.message) # type: ignore
-    elif callback == "btn_b":
-        handle_logic_b(call.message) # type: ignore
-    else:
-        # Fallback or generic pass
-        pass
+    message_text = "What should we do next?"
 
-    print(f"Universal Handler caught: {callback}")
+    bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode="MarkdownV2")
+    bot.edit_message_reply_markup(message.chat.id, message.id,reply_markup=markup)
+    
 
 def phase_two_regiment_info(message, selection):
 
     message_text = getmessage.regiment_parameters(selection,raw=True)
+    markup = quick_markup({
+        getmessage.button_back : {'callback_data':'p2:back to p2'},
+    })
     bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode="MarkdownV2")
+    bot.edit_message_reply_markup(message.chat.id, message.id,reply_markup=markup)
 
-    # # region old version  
-    # regiments = {    
-    #     'Ground Forces'         : 'Ground',
-    #     'Air Force'             : 'Airforce',
-    #     'Navy'                  : 'Navy',
-    #     'Airborne Assault F'    : 'Airborne',
-    #     'Special Operations F'  : 'SOF',
-    #     'Territorial Defense F' : 'TDF',
-    #     'Unmanned Systems F'    : 'USF',
-    #     'Support Forces'        : 'Support',
-    #     'Logistics Forces'      : 'Logistic',
-    #     'Medical Forces'        : 'Medical',
-    #     'Signal and Cybersec F' : 'SigSec',
-    # }
-    # message_text = "selected: \n"
+def phase_two_MC(message):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+    all_results = P2_Strategic_Readiness(selection)
+    message_lines = ['Phase 2 simulation preview:']
+    for alias, readiness in all_results.items():
+        if gamemode[user_id] == 'test':
+            print(alias,readiness)    
+        message_lines += [
+                        f"\t{alias} Force readiness:",
+                        f"\t\tStrategic readiness Index: {readiness['mean_sri']:2.%}",
+                        f"\t\tmax: {readiness['max_sri']:.2f}, min: {readiness['min_sri']:.2f}, p10: {readiness['p10']:.2f}",
+                        f"\t\tcrisis probability: {readiness['crisis_probability']:2.2%}",
+                        ""
+        ]
+    message_text = "\n".join(message_lines)
+    bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode=None)    
 
-    # for regiment, alias in regiments.items():
-    #     if alias in selection:
-    #         message_text += regiments[regiment] + "\n"
-    # bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode=None)
-    # # endregion
-        
 
+    # region P2:Scoring
+
+
+
+    # endregion
+# endregion
 
 # виклик АР підсумку
 @bot.callback_query_handler(func=lambda call: call.data == "AR_summary")

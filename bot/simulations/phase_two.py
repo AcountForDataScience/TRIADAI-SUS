@@ -1,6 +1,29 @@
 import numpy as np
 
 from .forces import Force
+from . import forces
+
+from enum import Enum
+
+class Strategic_Readiness_Index(Enum):
+    # Defining the UPPER bound for each class
+    CRISIS      = (0, 'Crisis readiness')
+    CRITICAL    = (0.4, 'Critical readiness')
+    MANEUVER    = (0.6, 'Maneuver readines')
+    HIGH        = (0.8, 'High Rediness')
+
+    def __init__(self, numeric_val, display_text):
+      self._value_ = numeric_val  # This keeps intrinsic .value as a float
+      self.display_name = display_text # And we still get pretty display name
+
+    #classmethod adds support for intermediate risk levels.
+    @classmethod
+    def classify(cls, score: float):
+        """Maps a float (0.0 - 1.0) to a RiskLevel."""
+        for level in cls:
+            if score <= level.value:
+                return level
+        return cls.HIGH  # Fallback for 1.0+
 
 def Monte_Carlo_Strategic_Readiness(
         # force_name : str,
@@ -60,13 +83,19 @@ def Monte_Carlo_Strategic_Readiness(
     }
 
 def Monte_Carlo_Strategic_Readiness_All_Forces(
-        forces_config: dict[str,Force],
+        forces_config: dict[str,Force]|list[str],
         n_simulations=10000,
         variation=0.10,
         combat_weight=0.7,
         baseline_weight=0.3) -> dict[str,dict]:
     all_results = {}
 
+    if isinstance(forces_config, list):
+        forceslist = forces_config
+        forces_config = {}
+        for alias in forceslist:
+            forces_config[alias] = getattr(forces, alias)
+    # if isinstance(forces_config,dict):
     for force_name, config in forces_config.items():
         result = Monte_Carlo_Strategic_Readiness(
             # force_name=force_name,
