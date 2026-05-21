@@ -1161,7 +1161,7 @@ def phase_two_MC(message):
             print(alias,readiness)    
         message_lines += [
                         f"\t{alias} Force readiness:",
-                        f"\t\tStrategic readiness Index: {readiness['mean_sri']:2.%}",
+                        f"\t\tStrategic readiness Index: {readiness['mean_sri']:2.0%}",
                         f"\t\tmax: {readiness['max_sri']:.2f}, min: {readiness['min_sri']:.2f}, p10: {readiness['p10']:.2f}",
                         f"\t\tcrisis probability: {readiness['crisis_probability']:2.2%}",
                         ""
