@@ -113,6 +113,7 @@ button_scenario_start   = "🚀Start scenario"
 button_direction_rename     = "Rename direction"
 button_direction_confirm    = "proceed with {direction}"
 
+#should be in Phase One
 button_parameters_shuffle   = "Shuffle parameters"
 button_parameters_set       = "Set custom parameters"
 button_parameters_confirm   = "Confirm and continue"
@@ -124,7 +125,6 @@ button_test_complete_p1     = "Complete simulation"
     # endregion
 
 # endregion
-
 
 # region Explain Phase One
 message_p1_explain = """
@@ -488,20 +488,37 @@ def build_ar_summary_short(
 
 # print("AR Summary tested")
 
+#region Phase two messages
+
+    # region buttons
+btn_GND = 'Ground Forces'        
+btn_Air = 'Air Force'            
+btn_Nav = 'Navy'                 
+btn_AAF = 'Airborne Assault F'   
+btn_SOF = 'Special Operations F' 
+btn_TDF = 'Territorial Defense F'
+btn_USF = 'Unmanned Systems F'   
+btn_Sup = 'Support Forces'       
+btn_Log = 'Logistics Forces'     
+btn_Med = 'Medical Forces'       
+btn_Cyb = 'Signal and Cybersec F'
+    #endregion
+#endregion
+
 #region Regiments
-    regiments = {    
-        'Ground Forces'         : 'Ground',
-        'Air Force'             : 'Airforce',
-        'Navy'                  : 'Navy',
-        'Airborne Assault F'    : 'Airborne',
-        'Special Operations F'  : 'SOF',
-        'Territorial Defense F' : 'TDF',
-        'Unmanned Systems F'    : 'USF',
-        'Support Forces'        : 'Support',
-        'Logistics Forces'      : 'Logistic',
-        'Medical Forces'        : 'Medical',
-        'Signal and Cybersec F' : 'SigSec',
-    }
+regiments = {    
+    'Ground Forces'         : 'Ground',
+    'Air Force'             : 'Airforce',
+    'Navy'                  : 'Navy',
+    'Airborne Assault F'    : 'Airborne',
+    'Special Operations F'  : 'SOF',
+    'Territorial Defense F' : 'TDF',
+    'Unmanned Systems F'    : 'USF',
+    'Support Forces'        : 'Support',
+    'Logistics Forces'      : 'Logistic',
+    'Medical Forces'        : 'Medical',
+    'Signal and Cybersec F' : 'SigSec',
+}
 #endregion
 
 #region Phase two: Regiment parameters
