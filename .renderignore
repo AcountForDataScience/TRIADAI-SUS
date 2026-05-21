@@ -1,0 +1,7 @@
+# Tell Render to completely ignore these directories and files
+tests/
+test_*.py
+.pytest_cache/
+
+# if tests require any specific packages, they will be listed here. 
+testrequirements.txt

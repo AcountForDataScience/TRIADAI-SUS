@@ -1,0 +1,6 @@
+# requirements file for testing suite
+#include everything from base requirements.txt
+-r requirements.txt
+
+#plus any extras: 
+# pytest
