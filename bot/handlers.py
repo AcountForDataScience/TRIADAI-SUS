@@ -56,7 +56,7 @@ from bot.php_send import send_to_php, AR_format # stuff to send messages to AR g
 ## LOGIC ##
 ###########
 
-# Settings
+# region Settings
 
 # початковий екран
 @bot.message_handler(commands=["setmode"])
@@ -66,7 +66,7 @@ def set_gamemode(message):
     
     # Check if the user provided an argument after the command
     if len(text_parts) < 2:
-        bot.reply_to(message, "⚠️ Please specify a mode. Example: /setmode default")
+        bot.reply_to(message, getmessage.error_invalid_mode)
         return
     mode = text_parts[1].lower()
     # acceptable gamemodes:
@@ -77,29 +77,33 @@ def set_gamemode(message):
         gamemode[user_id] = mode
         bot.reply_to(message, f"{mode.capitalize()} mode is set.")
     else:
-        bot.reply_to(message, "⚠️ Please specify a valid mode. Example: /setmode default")
+        bot.reply_to(message, getmessage.error_invalid_mode)
     return
 
 # || початковий екран
+
+# endregion
 
 ##-----------------------------##
 #   Інформаційні повідомлення   #
 ##-----------------------------##
 
+#region pre-game
+
 #надіслати основну інформацію
 def send_description(message):
-    print("Description")
+    user_id = message.chat.id
+    if gamemode[user_id] == 'test':
+        print("<info>: sending Description")    
     markup = types.InlineKeyboardMarkup()
-    backbtn = types.InlineKeyboardButton("<< back", callback_data="init_menu")
+    backbtn = types.InlineKeyboardButton(getmessage.button_back, callback_data="init_menu")
     markup.add(backbtn)
-
-    chat_id = message.chat.id
 
     #this is a message with line break support
     #markdown markup, periods must be escaped
     message_text = message_bot_welcome
     # bot.send_message(chat_id, message_text, parse_mode="MarkdownV2", reply_markup = markup)
-    bot.edit_message_text(message_text, chat_id, message.id, parse_mode="MarkdownV2", reply_markup = markup)
+    bot.edit_message_text(message_text, user_id, message.id, parse_mode="MarkdownV2", reply_markup = markup)
 # || надіслати опис
 
 # запит на інформацію
@@ -127,13 +131,14 @@ def send_welcome(message):
     gamemode[user_id] = gamemode.setdefault(user_id,'default')
     
     if not custom_name.get(user_id):
-        next = bot.send_message(message.chat.id, "You've launched the Strategic Uncertainty Simulation bot. Please enter your name or team name.")
+        next = bot.send_message(message.chat.id, getmessage.init_welcome + " " + getmessage.init_request_name)
         bot.register_next_step_handler(next, rename_user)
     else:
 
-        bot.send_message(message.chat.id, f"You've launched the Strategic Uncertainty Simulation bot, {custom_name[user_id]}")
+        bot.send_message(message.chat.id, getmessage.init_welcome_known_name.format(name = custom_name[user_id]))   
 
-        # bot.send_message(message.chat.id, f"Your Chat ID is: {message.chat.id}")
+        if gamemode[user_id] == 'test':
+            bot.send_message(message.chat.id, f"Your Chat ID is: {message.chat.id}")
         show_menu(message)
 # || початковий екран
 
@@ -143,17 +148,17 @@ def command_rename(message):
     global custom_name
     user_id = message.chat.id
     if not custom_name.get(user_id):
-        next = bot.send_message(message.chat.id, "Please enter your name or team name:")
+        next = bot.send_message(message.chat.id, getmessage.init_request_name)
     else:
-        next = bot.send_message(message.chat.id, f"your current name is:{custom_name[user_id]}. Enter a new name:")
+        next = bot.send_message(message.chat.id, getmessage.init_rename_team.format(name=custom_name[user_id]))
     bot.register_next_step_handler(next, rename_user)
 
 def rename_user(message):
     global custom_name
 
     markup = types.InlineKeyboardMarkup()
-    btn_rename = types.InlineKeyboardButton("Rename Team", callback_data="init_rename", style="danger")
-    btn_start = types.InlineKeyboardButton("🚀Start scenario", callback_data="start_simulation",style="success")
+    btn_rename = types.InlineKeyboardButton(getmessage.button_team_rename, callback_data="init_rename", style="danger")
+    btn_start = types.InlineKeyboardButton(getmessage.button_scenario_start, callback_data="start_simulation",style="success")
     markup.add(btn_start, btn_rename)
 
     custom_name[message.chat.id] = message.text
@@ -165,13 +170,13 @@ def rename_user(message):
 def show_menu(message, send_new = True):
     markup = types.InlineKeyboardMarkup()
 
-    button1 = types.InlineKeyboardButton("🚀 Start Scenario", callback_data="init_start", style="success")
-    button2 = types.InlineKeyboardButton("Bot Description", callback_data="init_info")
+    button1 = types.InlineKeyboardButton(getmessage.button_scenario_start, callback_data="init_start", style="success")
+    button2 = types.InlineKeyboardButton(getmessage.button_bot_description, callback_data="init_info")
 
     # Each line adds a row of buttons
     markup.add(button1, button2)
 
-    message_text = "Select menu option to proceed"
+    message_text = getmessage.init_menu_text
 
     if send_new:
         bot.send_message(message.chat.id, message_text, reply_markup=markup)
@@ -179,35 +184,41 @@ def show_menu(message, send_new = True):
         bot.edit_message_text(message_text, message.chat.id, message.id, reply_markup=markup)
 # || меню команд
 
+#endregion
 
 ##-----------------------------##
 #         Phase  One            #
 ##-----------------------------##
 
-# ---> init_start is the entry point callback
+# region Phase One
 
+
+
+# ---> init_start is the entry point callback
 # Початок Першої фази
 @bot.callback_query_handler(func=lambda call: call.data == "init_start")
 def handle_start_phase_one(call):
     bot.answer_callback_query(call.id, "Preparing the simulation") #removes loading symbol
     # bot.send_message(call.message.chat.id, "Розпочинаємо симуляцію")
-    next = bot.send_message(call.message.chat.id, "Simulation has started\\. Please choose *strategic direction*\n\\(enter direction name below\\):", parse_mode="MarkdownV2")
+    next = bot.send_message(call.message.chat.id, getmessage.init_direction, parse_mode="MarkdownV2")
     # Hand off the flow to the 'name_strategic_direction' function
     bot.register_next_step_handler(next, name_strategic_direction)
     # || Початок Симуляції
 
+    # region Name direction
+
 # Назва напрямку
 def name_strategic_direction(message):
     # print("name strat direction")
-    global strategic_direction_name
+    # global strategic_direction_name
 
     markup = types.InlineKeyboardMarkup()
 
     direction = message.text
 
     # btn_param = types.InlineKeyboardButton("Визначити параметри", callback_data="init_set_parameters")
-    btn_rename = types.InlineKeyboardButton("Rename direction", callback_data="init_rename", style="danger")
-    btn_start = types.InlineKeyboardButton(f"Continue with {direction[:30]}", callback_data="start_simulation",style="success")
+    btn_rename = types.InlineKeyboardButton(getmessage.button_direction_rename, callback_data="init_rename", style="danger")
+    btn_start = types.InlineKeyboardButton(getmessage.button_direction_confirm.format(direction = direction[:20]), callback_data="start_simulation",style="success")
 
     # Each line adds a row of buttons
     markup.add(btn_start, btn_rename)
@@ -215,15 +226,17 @@ def name_strategic_direction(message):
 
     strategic_direction_name[message.chat.id] = message.text
     # print(strategic_direction_name[message.chat.id])
-    bot.reply_to(message, f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" direction", reply_markup=markup)
+    bot.reply_to(message, getmessage.init_direction_confirm.format(direction = strategic_direction_name[message.chat.id]), reply_markup=markup)
 
 # переназвати напрямок
 @bot.callback_query_handler(func=lambda call: call.data == "init_rename")
 def handle_name_strategic_direction(call):
     bot.answer_callback_query(call.id) #removes loading symbol
-    next = bot.send_message(call.message.chat.id, "Please choose *strategic direction*\n\\(enter direction name below\\):", parse_mode="MarkdownV2")
+    next = bot.send_message(call.message.chat.id, getmessage.init_direction_rename, parse_mode="MarkdownV2")
     # Hand off the flow to the 'name_strategic_direction' function
     bot.register_next_step_handler(next, name_strategic_direction)
+
+    # endregion
 
 # # визначити параметри
 # @bot.callback_query_handler(func=lambda call: call.data == "init_set_parameters")
@@ -246,6 +259,7 @@ def handle_simulation_p1_restart(call):
     simulation_phase_one(call.message.chat.id)
     simulation_phase_one_results(call.message)
 
+    #region P1 Monte-Carlo
 ### simulation scenario
 def simulation_phase_one(chat_id):
     # #if we transition to custom keys or values, new definition could be:
@@ -288,33 +302,39 @@ def simulation_phase_one(chat_id):
     )
 
     simulation_results[chat_id] = { "P1" : format_phase1_message(p1_results)}
-    # print(simulation_results)
+    simulation_results[chat_id]["P1_raw"] = p1_results
+    if gamemode[chat_id] == 'test':
+        print(simulation_results)
     #simulation end
 
 def simulation_phase_one_results(message):
     # print("results_started")
 
-    global strategic_direction_name #using this to explicitly mention the direction being evaluated.
-    global simulation_results #results are stored here per-user
+    # global strategic_direction_name #using this to explicitly mention the direction being evaluated.
+    # global simulation_results #results are stored here per-user
     if not message.chat.id in simulation_results:
         simulation_phase_one(message.chat.id)
 
     markup = types.InlineKeyboardMarkup()
 
-    btn_restart = types.InlineKeyboardButton("Shuffle parameters", callback_data="p1_restart", style="danger")
-    btn_explain = types.InlineKeyboardButton("How this works?", callback_data="p1_explain",style="primary")
-    btn_next = types.InlineKeyboardButton("Confirm and continue", callback_data="p1_confirm_parameters", style="success")
+    btn_restart = types.InlineKeyboardButton(getmessage.button_parameters_shuffle, callback_data="p1_restart", style="danger")
+    btn_explain = types.InlineKeyboardButton(getmessage.button_explain_phase1, callback_data="p1_explain",style="primary")
+    btn_next = types.InlineKeyboardButton(getmessage.button_parameters_confirm, callback_data="p1_confirm_parameters", style="success")
 
     # Each line adds a row of buttons
     markup.add(btn_restart, btn_explain)
     markup.add(btn_next)
 
     # print("ready to send")
-    response_text = f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n" + simulation_results[message.chat.id]["P1"]
+    response_text = getmessage.init_direction_confirm[:-1].format(direction = strategic_direction_name[message.chat.id]) + ": " + simulation_results[message.chat.id]["P1"]
     # print(response_text)
     bot.edit_message_text(response_text, message.chat.id, message.id, reply_markup=markup)
-#end of phase one monte carlo
 
+
+#end of phase one monte carlo
+    #endregion
+
+    #region Explain P1
 @bot.callback_query_handler(func=lambda call: call.data == "p1_explain")
 def handle_p1_explain(call):
     bot.answer_callback_query(call.id)
@@ -322,7 +342,7 @@ def handle_p1_explain(call):
 
 ### simulation scenario
 def simulation_phase_one_explain(message):
-    global simulation_parameters #we use some params from here
+    # global simulation_parameters #we use some params from here
 
     # explain = explain_monte_carlo_phase1(
     #     simulation_parameters[message.chat.id]["n"],
@@ -336,12 +356,13 @@ def simulation_phase_one_explain(message):
     explain = message_p1_explain
 
     markup = types.InlineKeyboardMarkup()
-    btn_back = types.InlineKeyboardButton("<< back", callback_data="start_simulation", style="success")
+    btn_back = types.InlineKeyboardButton(getmessage.button_back, callback_data="start_simulation", style="success")
 
     # Each line adds a row of buttons
     markup.add(btn_back)
 
     bot.edit_message_text(explain, message.chat.id, message.id, reply_markup=markup, parse_mode="MarkdownV2")
+    #endregion
 
 #Підтвердження параметрів
 @bot.callback_query_handler(func=lambda call: call.data == "p1_confirm_parameters")
@@ -350,11 +371,11 @@ def handle_simulation_p1_confirm_parameters(call):
     # print("p1 parameters confirmed")
     
     # scoring
-    global current_score
+    # global current_score
     run_id = generate_random_token()
     # user_id = call.from_user.id
     user_id = call.message.chat.id
-    global custom_name
+    # global custom_name
     user_name = custom_name[user_id]
     timestamp = datetime.date.today()
     # print(timestamp)
@@ -365,7 +386,8 @@ def handle_simulation_p1_confirm_parameters(call):
         strategic_direction_name[user_id],
         timestamp.isoformat() #in a better format
     ]
-    # print(f"score record created for {run_id}:\n{current_score[call.from_user.id]}")
+    if gamemode[user_id] == 'test':
+        print(f"score record created for {run_id}:\n{current_score[call.from_user.id]}")
 
     simulation_phase_one_analyze(call.message)
 
@@ -389,13 +411,13 @@ def simulation_phase_one_analyze(message):
     # }, row_width=2)
 
     btn_Test_Sens = types.InlineKeyboardButton(
-        "Test Sensitivity Analysis",
+        getmessage.button_test_sensitivity,
         callback_data="p1_analysis:Test Sens")
     btn_Test_WinP = types.InlineKeyboardButton(
-        "Test Win Probability",
+        getmessage.button_test_winprobability,
         callback_data="p1_analysis:Test WinP")
     btn_Conclude = types.InlineKeyboardButton(
-        "Complete simulation",
+        getmessage.button_test_complete_p1,
         callback_data="p1_analysis:Conclude")
 
     Sens = WinP = False
@@ -429,6 +451,8 @@ def simulation_phase_one_analyze(message):
     #       text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]}",
     #       reply_markup=markup
     #   )
+
+    # region Scoring
 
 #обробка додаткових виводів
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p1_analysis:"))
@@ -474,6 +498,7 @@ def handle_p1_analysis(call):
 
 # from telebot.formatting import escape_markdown
 
+        # region Scoring Sensitivity
 # scoring #######################################
 def simulation_p1_test_sens(message):
     global simulation_parameters
@@ -495,8 +520,8 @@ def simulation_p1_test_sens(message):
 
     markup = quick_markup({
         'Intell Confidence' : {'callback_data': 'p1_analysis:Score Sens:IC'},
-        'Volatility'              : {'callback_data': 'p1_analysis:Score Sens:V'},
-        'Time pressure'           : {'callback_data': 'p1_analysis:Score Sens:TP'}
+        'Volatility'        : {'callback_data': 'p1_analysis:Score Sens:V'},
+        'Time pressure'     : {'callback_data': 'p1_analysis:Score Sens:TP'}
     }, row_width=3)
 
     bot.edit_message_text(message_text,chat_id = user_id, message_id = message.id, reply_markup=markup, parse_mode="MarkdownV2")
@@ -575,9 +600,24 @@ def simulation_p1_score_sens(message,answer):
         score_text
         ])
 
+    save_sens = {}
+    save_sens['best'] = answer_key
+    save_sens['spearman_corr'] = sens['spearman_corr']
+    save_sens['influence_share'] = sens['influence_share']
+    save_sens['combined_score'] = sens['combined_score']
+    # print(f"SENSITIVITY:\n{save_sens}")
+    # print(f"parameters are:\n{simulation_results[user_id]['P1']}")
+    simulation_results[user_id]['P1_raw']['sens'] = save_sens
+    if gamemode[user_id] == 'test':
+        print(f"SENSITIVITY:\n{save_sens}")
+        print(f"simresults:\n{simulation_results[user_id]['P1_raw']}")
+
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id, parse_mode="MarkdownV2")
     simulation_phase_one_analyze(message)
 
+        # endregion
+        
+        # region Scoring Win Probability
 def simulation_p1_test_winp(message):
     global simulation_parameters
     global strategic_direction_name
@@ -655,11 +695,22 @@ def simulation_p1_score_winp(message,answer):
         score_text,
     ])
 
+    WinP = {}
+    WinP['best'] = answer_key
+    for key, value in coa_wp.items():
+        WinP[key] = value
+    simulation_results[user_id]['P1_raw']['WinP'] = WinP
+    if gamemode[user_id] == 'test':
+        print(f"WinProb:\n{WinP}")
+    
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id, parse_mode="MarkdownV2")
     simulation_phase_one_analyze(message)
+        #endregion
+    
+    #endregion
 # scoring #######################################
 
-
+    #region deprecated? 
 def simulation_p1_compare_coa(message):
     #display CoA comparison and all the buttons
     global simulation_parameters
@@ -769,6 +820,7 @@ def simulation_p1_win_probability(message):
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
     simulation_phase_one_analyze(message) #bring back menu buttons
 #end win probability
+    # endregion deprecated stuff? 
 
 def simulation_p1_AR_summary(message):
     #use placeholder data for AR summary
@@ -835,6 +887,8 @@ You were playing as {name} on {direction} direction."
         'Send scores' : {'callback_data': send_score_call_id}, 
     }, row_width = 1)
     bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id,reply_markup=markup)
+
+#endregion
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_score"))
 def handle_send_scores(call):

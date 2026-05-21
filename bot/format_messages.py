@@ -89,6 +89,43 @@ message_bot_welcome = """
     """
 # endregion
 
+# region System messages
+
+init_welcome = "You've launched the Strategic Uncertainty Simulation bot."
+init_welcome_known_name = "You've launched the Strategic Uncertainty Simulation bot, {name}"
+init_request_name = "Please enter your name or team name:"
+init_rename_team = "Your current name is: {name}. Enter a new name:"
+init_direction = "Simulation has started\\. Please choose *strategic direction*\n\\(enter direction name below\\):"
+init_direction_rename = "Please choose *strategic direction*\n\\(enter direction name below\\):"
+init_direction_confirm = "Evaluating the \"{direction}\" direction."
+
+init_menu_text = "Select menu option to proceed"
+
+error_invalid_mode = "⚠️ Please specify a mode. Example: /setmode default"
+
+    # region Buttons
+button_back = "<< back"
+button_bot_description  = "Bot Description"
+button_explain_phase1   = "How this works?"
+button_team_rename      = "Rename Team"
+button_scenario_start   = "🚀Start scenario"
+
+button_direction_rename     = "Rename direction"
+button_direction_confirm    = "proceed with {direction}"
+
+button_parameters_shuffle   = "Shuffle parameters"
+button_parameters_set       = "Set custom parameters"
+button_parameters_confirm   = "Confirm and continue"
+
+button_test_sensitivity     = "Test Sensitivity Analysis"
+button_test_winprobability  = "Test Win Probability"
+button_test_complete_p1     = "Complete simulation"
+
+    # endregion
+
+# endregion
+
+
 # region Explain Phase One
 message_p1_explain = """
     *Initial Strategic Environment Assessment*
