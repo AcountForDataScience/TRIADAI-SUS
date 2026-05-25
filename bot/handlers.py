@@ -589,6 +589,7 @@ def simulation_p1_score_sens(message,answer):
         current_score[user_id].append((
             1,
             "Sensitivity",
+            prettify(answer),
             simulation_parameters[user_id],
             sens
             ))
@@ -598,6 +599,7 @@ def simulation_p1_score_sens(message,answer):
         current_score[user_id].append((
             0,
             "Sensitivity",
+            prettify(answer),
             simulation_parameters[user_id],
             sens
             ))
@@ -683,6 +685,7 @@ def simulation_p1_score_winp(message,answer):
         current_score[user_id].append((
             1,
             "Win Probability",
+            answer,
             simulation_parameters[user_id],
             coa_wp
             ))
@@ -692,6 +695,7 @@ def simulation_p1_score_winp(message,answer):
         current_score[user_id].append((
             0,
             "Win Probability",
+            answer,
             simulation_parameters[user_id],
             coa_wp
             ))
@@ -923,11 +927,12 @@ def handle_send_scores(call):
     name = run_scores[1]
     direction = run_scores[3]
     datestamp = run_scores[4]
+    print(run_scores)
 
     for i in range(5, len(run_scores)):
         score += run_scores[i][0]
     
-    sim_params = run_scores[5][2]
+    sim_params = run_scores[5][3]
     IC,VL,TP,PT = sim_params['IC'],sim_params['VL'],sim_params['TP'],sim_params['PT']
     # base_dri = (1 - IC.value) * 0.33 + VL.value * 0.33 + TP.value * 0.33 # workaround
     # sim_data = run_scores[5][?]
@@ -937,9 +942,11 @@ def handle_send_scores(call):
     
     # correct answers for WinProb and Sens analysis
     if run_scores[5][1] == 'Sensitivity':
-        results,sens = run_scores[6][3],run_scores[5][3] 
+        results,sens = run_scores[6][4],run_scores[5][4] 
+        ans_wp,ans_sens = run_scores[6][2],run_scores[5][2] 
     else: 
-        results,sens = run_scores[5][3],run_scores[6][3] 
+        results,sens = run_scores[5][4],run_scores[6][4] 
+        ans_wp,ans_sens = run_scores[5][2],run_scores[6][2] 
     wscores = {
         coa: results[coa]["WinProb_Mean"] - results[coa]["Critical_%"]
         for coa in results
@@ -961,11 +968,13 @@ def handle_send_scores(call):
         "DRI_mean"  : mean,
         "Critical Tail"     : tail,  
         "Win probability"   : WinP, 
+        "WP answered"      : ans_wp,
         "Sensitivity Analysis": Sens,
+        "SA answered"      : ans_sens,
     }
     if gamemode[user_id] == 'test':
-        print(AR_format(parameters,72))
-    send_to_php(AR_format(parameters,60))
+        print(AR_format(parameters))
+    send_to_php(AR_format(parameters))
 
 # region Phase Two
 

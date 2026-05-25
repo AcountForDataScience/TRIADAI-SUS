@@ -111,7 +111,7 @@ button_team_rename      = "Rename Team"
 button_scenario_start   = "🚀Start scenario"
 
 button_direction_rename     = "Rename direction"
-button_direction_confirm    = "proceed with {direction}"
+button_direction_confirm    = "Proceed with {direction}"
 
 #should be in Phase One
 button_parameters_shuffle   = "Shuffle parameters"

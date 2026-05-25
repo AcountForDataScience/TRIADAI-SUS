@@ -47,7 +47,7 @@ def send_to_php(message, url = "https://aiproducts.xo.je/TriadSusAI/ExpressOverv
 
     return html
 
-def AR_format(params:dict[str,float|str|object], max_length=42): # type: ignore
+def AR_format_old(params:dict[str,float|str|object], max_length=42): # type: ignore
     message : str = ""
     lines: list[str] = []
     for key, value in params.items():
@@ -70,6 +70,29 @@ def AR_format(params:dict[str,float|str|object], max_length=42): # type: ignore
             length = 0
         elif message:
             message += "| " + line
+        else:
+            message = line
+    return (message)
+
+def AR_format(params:dict[str,float|str|object]): # type: ignore
+    message : str = ""
+    lines: list[str] = []
+    for key, value in params.items():
+        match value:
+            case str():
+                fvalue = f"{key}: {value}"
+            case float()|int():
+                fvalue = f"{key}: {value:.2f}"
+            case None:
+                fvalue = f"{key}: N/A"
+            case _:
+                fvalue = f"{key}: {value.display_name}"  # this assumes custom ENUM type # type: ignore
+        lines.append(fvalue)
+    # print(lines)
+    length = 0
+    for line in lines:
+        if message:
+            message += "; " + line
         else:
             message = line
     return (message)
