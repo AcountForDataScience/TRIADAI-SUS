@@ -39,6 +39,9 @@ from bot.state import (
     score_table,
     current_score
 )
+back_where :dict[str,list] = {}
+
+questions = {}
 
 # Prettify output text
 from bot.format_messages import (
@@ -146,6 +149,7 @@ def send_welcome(message):
     # set default gamemode
     # if set previously, does not overwrite.
     gamemode[user_id] = gamemode.setdefault(user_id,'default')
+    back_where[user_id] = [] # reset back buttons
     
     if not custom_name.get(user_id):
         next = bot.send_message(message.chat.id, getmessage.init_welcome + " " + getmessage.init_request_name)
@@ -978,10 +982,15 @@ def handle_send_scores(call):
 
 # region Phase Two
 
+back_where = {}
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p2:"))
 def handle_phase_two_callbacks(call):
     callback = call.data.split(':')[1] #split the function and take second part only
     # bot.answer_callback_query(call.id, text=f"Processing {callback}...")
+
+    # if gamemode[call.message.chat.id] == 'test':
+    #     print(callback)
 
     if callback == "select regiments":
         bot.edit_message_text("Please select the regiments required for this operation.",call.message.chat.id, call.message.id)
@@ -998,24 +1007,21 @@ def handle_phase_two_callbacks(call):
         ]:
             bot.answer_callback_query(call.id, text=f"Can't select {regiment}")
         else:
-            # print(f"We are now in the callback!\n{call.data}")
-            # print(f"selection: {selection}")
             if not regiment in selection:
                 selection.append(regiment)
                 text = f"{regiment} is now selected"
-                # print(f"{regiment} is now selected")
             else:
                 selection.remove(regiment)
                 text = f"{regiment} is removed from selection"
-                # print(f"{regiment} is removed from selection")
-            # print(regiment)
-            # print(selection)
             bot.answer_callback_query(call.id, text=text)
         phase_two_select_regiments(call.message, selection)
     elif callback == "confirm selected":
-        bot.answer_callback_query(call.id, text=f"Selection confirmed!")
         selection = call.data.split(':')[2:]
-        phase_two_selection_confirmed(call.message, selection)
+        if any(selection):
+            bot.answer_callback_query(call.id, text=f"Selection confirmed!")
+            phase_two_selection_confirmed(call.message, selection)
+        else:
+            bot.answer_callback_query(call.id, text=f"Error: You must select at least one regiment!")
         # phase_two_regiment_info(call.message, selection)    
     elif callback == "selection info":
         bot.answer_callback_query(call.id)
@@ -1023,25 +1029,101 @@ def handle_phase_two_callbacks(call):
         phase_two_regiment_info(call.message, selection)
     elif callback == "back to p2":
         bot.answer_callback_query(call.id)
-        phase_two_next(call.message)
+        # phase_two_next(call.message)
+        back = back_where[call.message.chat.id].pop()
+        if gamemode[call.message.chat.id] == 'test':
+            print("back phase 2")
+            print(f"--> {back}")
+            print(f"back queue: \n{back_where[call.message.chat.id]}")
+        back(call.message)
     elif callback == "readiness":
         bot.answer_callback_query(call.id)
         phase_two_MC(call.message)
+    elif callback == 'askscore':
+        callback = call.data.split(':')[2:]
+        if gamemode[call.message.chat.id] == 'test':
+            print(callback)
+        if callback[0] == 'multi':
+            if callback[1] == 'sri':
+                bot.answer_callback_query(call.id)
+                p2_score_sri_highest(call.message)
+            elif callback[1] == 'critprob':
+                bot.answer_callback_query(call.id)
+                p2_score_crit_worst(call.message)
+        elif callback[0] == 'single':
+            if callback[1] == 'sri':
+                bot.answer_callback_query(call.id)
+                p2_score_sri_value(call.message)
+            elif callback[1] == 'critprob':
+                bot.answer_callback_query(call.id)
+                p2_score_crit_value(call.message)
+        # return
+    elif callback == 'score':
+        callback = call.data.split(':')[2:]
+        answer_text = "your answer has been recorded"
+        if gamemode[call.message.chat.id] in ('test','command'):
+            answer_text = f"your answer '{callback[-1:]}' has been recorded"
+        # bot.answer_callback_query(call.id, text = answer_text)
+        p2_record_score(call.message, ":".join(callback[:-1]), callback[-1])
+        bot.answer_callback_query(call.id, text = answer_text)
+        p2_next_question(call.message)
     else:
         # Fallback or generic pass
         pass
+    # print("next")
+    # print(callback)
+    # if callback == 'score':
+    #     callback = call.data.split(':')[2:]
+    #     if gamemode[call.message.chat.id] == 'test':
+    #         print(callback)
+    #     if callback[0] == 'multi':
+    #         if callback[1] == 'sri':
+    #             bot.answer_callback_query(call.id)
+    #             # callback from:
+    #             # p2_score_sri_highest(call.message)
+    #             message = call.message
+    #             answer = callback[2]
+    #             question = ":".join(callback[0:1])
+
+    #             p2_record_score(message,question,answer)
+    #         elif callback[1] == 'critprob':
+    #             bot.answer_callback_query(call.id)
+    #             # callback from:
+    #             # p2_score_crit_worst(call.message)
+    #     elif callback[0] == 'single':
+    #         if callback[1] == 'sri':
+    #             bot.answer_callback_query(call.id)
+    #             # callback from:
+    #             # p2_score_sri_value(call.message)
+    #         elif callback[1] == 'critprob':
+    #             bot.answer_callback_query(call.id)
+    #             # callback from:
+    #             # p2_score_crit_value(call.message)
+
 
     bot.answer_callback_query(call.id, text=f"Processed {callback}...")
-    print(f"Universal P2 Handler caught: {callback}")
+    if gamemode[call.message.chat.id] == 'test':
+        # print(callback)
+        print(f"Universal P2 Handler caught: {callback}")
 
 
 @bot.message_handler(commands=["phasetwo"])
 def phase_two_skip(message):
     user_id = message.chat.id
     gamemode.setdefault(user_id, 'default')
+    if not back_where.get(user_id):
+        back_where[user_id] = []
     strategic_direction_name.setdefault(user_id, 'test_direction')
     simulation_parameters.setdefault(user_id, {})
     custom_name.setdefault(user_id, 'test_user')
+    current_score[user_id] = []
+    current_score[user_id].append((
+        user_id,
+        custom_name[user_id],
+        "discard_this_run_id",
+        strategic_direction_name[user_id],
+        "",
+        ))
 
     message_text = "Please select the regiments required for this operation."
 
@@ -1127,7 +1209,7 @@ def phase_two_selection_confirmed(message, selection):
     user_id = message.chat.id
     simulation_parameters[user_id]['P2_raw'] = {"selection": selection}
     if gamemode[user_id] == 'test':
-        print(simulation_parameters[user_id]['P2_raw'])
+        print(f"selection confirmed: {simulation_parameters[user_id]['P2_raw']}")
     phase_two_next(message)
 
 def phase_two_next(message):
@@ -1144,7 +1226,7 @@ def phase_two_next(message):
     # style="primary"
     )
     markup.add(btn_readiness, btn_info)
-
+    back_where[user_id].append(phase_two_next)
     message_text = "What should we do next?"
 
     bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode="MarkdownV2")
@@ -1164,6 +1246,7 @@ def phase_two_MC(message):
     user_id = message.chat.id
     selection = simulation_parameters[user_id]['P2_raw']['selection']
     all_results = P2_Strategic_Readiness(selection)
+    simulation_parameters[user_id]['P2'] = all_results
     message_lines = ['Phase 2 simulation preview:']
     for alias, readiness in all_results.items():
         if gamemode[user_id] == 'test':
@@ -1176,15 +1259,363 @@ def phase_two_MC(message):
                         ""
         ]
     message_text = "\n".join(message_lines)
-    bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode=None)    
+    
+    if gamemode[user_id] == 'default':
+        message_text = "Phase two simulation complete. \n Proceed to testing"
+    bot.edit_message_text(message_text,message.chat.id, message.id, parse_mode=None) 
 
+    if len(selection) == 1:
+        markup = quick_markup({
+            "Question 1 (sri)" : {'callback_data':'p2:askscore:single:sri'},
+            "Question 2 (crit%)" : {'callback_data':'p2:askscore:single:critprob'},
+        }, row_width=2)
+        questions[user_id] = [p2_score_sri_value,p2_score_crit_value]
+        # questions[user_id] = []
+    else:
+        markup = quick_markup({
+            "Question 1 (sri)" : {'callback_data':'p2:askscore:multi:sri'},
+            "Question 2 (crit%)" : {'callback_data':'p2:askscore:multi:critprob'},
+        }, row_width=2)
+        questions[user_id] = [p2_score_sri_highest,p2_score_crit_worst]
+        # questions[user_id] = []
 
+    bot.edit_message_reply_markup(message.chat.id, message.id,reply_markup=markup)
     # region P2:Scoring
 
+def p2_next_question(message):
+    user_id = message.chat.id
+    if questions[user_id]:
+        next = questions[user_id].pop()
+    else:
+        next = p2_send_score
+    next(message)
 
 
+#idk really what to do
+# let's try 
+# if two or more: 
+# which force has highest mean SRI [force a] [force b] [force c] [force d] [check force details]
+# Which force has highest critical probability [force a] [force b] [force c] [force d] [check force details]
+# which force has lowest combined readiness score (p90 sri - crisis probab)? maybe not.
+# if one:
+# for the * force, what is the readiness level? [high] [maneuver] [crisis] [critical] 
+# What is the crisis probability? [<20%] [20%-99%] [already in crisis].
+
+        # region P2:score:pseudo
+        # if two or more: 
+
+        # which force has highest mean SRI [force a] [force b] [force c] [force d] [check force details]
+def p2_score_sri_highest(message):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+
+    if p2_score_sri_value in questions[user_id]:
+        questions[user_id].remove(p2_score_sri_value)
+
+    message_text = "Which force has the highest Mean Strategic Readiness?"
+
+    callback_prefix = "p2:score:multi:sri"
+    markup = types.InlineKeyboardMarkup()
+    buttons = []
+    for force in selection:
+        button = types.InlineKeyboardButton(
+            text = force,
+            callback_data=":".join([callback_prefix, force]),
+            # style="primary"
+        )
+        buttons.append(button)
+
+    btn_view_force_info = types.InlineKeyboardButton(
+        text = "Review Regiments",
+        callback_data=":".join(["p2:selection info"]+selection),
+        style="primary"
+    )
+    back_where[user_id].append(p2_score_sri_highest)
+
+    markup.add(*buttons,row_width=2)
+    markup.add(btn_view_force_info)
+
+    bot.edit_message_text(message_text, message.chat.id,message.id, reply_markup=markup)
+    # bot.edit_message_reply_markup()
+
+        # Which force has highest critical probability [force a] [force b] [force c] [force d] [check force details]
+def p2_score_crit_worst(message):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+
+    if p2_score_crit_worst in questions[user_id]:
+        questions[user_id].remove(p2_score_crit_worst)
+
+    message_text = "Which force has the highest probability of crisis?"
+
+    callback_prefix = "p2:score:multi:critprob"
+    markup = types.InlineKeyboardMarkup()
+    buttons = []
+    for force in selection:
+        button = types.InlineKeyboardButton(
+            text = force,
+            callback_data=":".join([callback_prefix, force]),
+            # style="primary"
+        )
+        buttons.append(button)
+
+    btn_view_force_info = types.InlineKeyboardButton(
+        text = "Review Regiments",
+        callback_data=":".join(["p2:selection info"]+selection),
+        style="primary"
+    )
+    back_where[user_id].append(p2_score_crit_worst)
+
+    markup.add(*buttons,row_width=2)
+    markup.add(btn_view_force_info)
+
+    bot.edit_message_text(message_text, message.chat.id,message.id, reply_markup=markup)
+    # bot.edit_message_reply_markup()
+        
+        # if one:
+
+        # for the * force, what is the readiness level? [high] [maneuver] [crisis] [critical] 
+def p2_score_sri_value(message):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+
+    if p2_score_sri_value in questions[user_id]:
+        questions[user_id].remove(p2_score_sri_value)
+
+    if len(selection) == 1:
+        force = selection[0]
+    else:
+        force = selection[1]
+        # force = random.sample(selection,1)[0]
+    
+    simulation_parameters[user_id]['P2_question'] = force
+    if gamemode[user_id] == 'test':
+        print(selection)
+        print(force)
+
+    message_text = f"For the {force} force, what is the Strategic Readiness level?"
+    answers = ["High","Maneuver","Crisis","Critical",]
+    # sri = 0.5
+    # if sri >= 0.8:
+    #     sri_value = "High"
+    # elif sri >= 0.6:
+    #     sri_value = "Maneuver"
+    # elif sri >= 0.4:
+    #     sri_value = "Crisis"
+    # else:
+    #     sri_value = "Critical"
+
+    callback_prefix = "p2:score:single:sri"
+    markup = types.InlineKeyboardMarkup()
+    buttons = []
+    for answer in answers:
+        button = types.InlineKeyboardButton(
+            text = answer,
+            callback_data=":".join([callback_prefix, answer]),
+            # style="primary"
+        )
+        buttons.append(button)
+
+    btn_view_force_info = types.InlineKeyboardButton(
+        text = "review foce info",
+        callback_data=":".join(["p2:selection info",force]),
+        style="primary"
+    )
+    back_where[user_id].append(p2_score_sri_value)
+
+    markup.add(*buttons,row_width=2)
+    markup.add(btn_view_force_info)
+
+    bot.edit_message_text(message_text, message.chat.id,message.id, reply_markup=markup)
+
+
+        # What is the crisis probability? [<20%] [20%-99%] [already in crisis].
+def p2_score_crit_value(message):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+
+    if p2_score_crit_value in questions[user_id]:
+        questions[user_id].remove(p2_score_crit_value)
+
+    if len(selection) == 1:
+        force = selection[0]
+    else:
+        force = selection[1]
+        # force = random.sample(selection,1)[0]
+    
+    simulation_parameters[user_id]['P2_question'] = force
+    if gamemode[user_id] == 'test':
+        print(selection)
+        print(force)
+
+    message_text = f"For the {force} force, what is the Crisis robability?"
+    # answers = ["Below 20%","20-99%","Already in crisis",]
+    answers = ["Safe","Risky","Crisis",]
+
+    callback_prefix = "p2:score:single:critprob"
+    markup = types.InlineKeyboardMarkup()
+    buttons = []
+    for answer in answers:
+        button = types.InlineKeyboardButton(
+            text = answer,
+            callback_data=":".join([callback_prefix, answer]),
+            # style="primary"
+        )
+        buttons.append(button)
+
+    btn_view_force_info = types.InlineKeyboardButton(
+        text = "review foce info",
+        callback_data=":".join(["p2:selection info",force]),
+        style="primary"
+    )
+    back_where[user_id].append(p2_score_crit_value)
+
+    markup.add(*buttons,row_width=2)
+    markup.add(btn_view_force_info)
+
+    bot.edit_message_text(message_text, message.chat.id,message.id, reply_markup=markup)
+
+
+        # endregion
+
+def p2_record_score(message, question, answer):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+    results = simulation_parameters[user_id]['P2']
+    if gamemode[user_id] == 'test':
+        print(f"record score for {question}: is {answer} correct?")
+
+    if    question == 'multi:sri':
+        question = "Strongest Force"
+               
+        max_sri = 0
+        for force, result in results.items():
+            if result["mean_sri"] >= max_sri:
+                correct = force
+                max_sri = result["mean_sri"]
+
+        if answer == correct:
+            score = 1
+        else:
+            score = 0
+        if gamemode[user_id] == 'test':
+            print(f"---scoring {question}:---\nanswer: {answer} | correct: {correct} | score: {score}")
+        force_parameters = getmessage.regiment_parameters(selection,raw=True)
+        force_readiness = simulation_parameters[user_id]['P2']
+    elif question == 'multi:critprob':
+        question = "Weakest Force"
+        
+        crittail = 0
+        for force, result in results.items():
+            if result["critical_probability"] >= crittail:
+                correct = force
+                crittail = result["critical_probability"]
+
+        if answer == correct:
+            score = 1
+        else:
+            score = 0
+        if gamemode[user_id] == 'test':
+            print(f"---scoring {question}:---\nanswer: {answer} | correct: {correct} | score: {score}")
+        force_parameters = getmessage.regiment_parameters(selection,raw=True)
+        force_readiness = simulation_parameters[user_id]['P2']
+    elif question == 'single:sri':
+        question = "Force Readiness"
+
+        force = simulation_parameters[user_id]['P2_question']
+        sri = simulation_parameters[user_id]['P2'][force]['mean_sri']
+        if sri >= 0.8:
+            correct = "High"
+        elif sri >= 0.6:
+            correct = "Maneuver"
+        elif sri >= 0.4:
+            correct = "Crisis"
+        else:
+            correct = "Critical"
+
+        if answer == correct:
+            score = 1
+        else:
+            score = 0
+
+        if gamemode[user_id] == 'test':
+            print(f"---scoring {question}:---\nanswer: {answer} | correct: {correct} | score: {score}")
+        force_parameters = getmessage.regiment_parameters(selection,raw=True)
+        force_readiness = simulation_parameters[user_id]['P2']
+    elif question == 'single:critprob':
+        question = "Force Vulnerability"
+
+        force = simulation_parameters[user_id]['P2_question']
+        crit = simulation_parameters[user_id]['P2'][force]['critical_probability']
+        if crit <= 0.2:
+            correct = "Safe"
+        elif crit < 1:
+            correct = "Risky"
+        else:
+            correct = "Crisis"
+        
+        if answer == correct:
+            score = 1
+        else:
+            score = 0
+
+        if gamemode[user_id] == 'test':
+            print(f"---scoring {question}:---\nanswer: {answer} | correct: {correct} | score: {score}")
+        force_parameters = getmessage.regiment_parameters(selection,raw=True)
+        force_readiness = simulation_parameters[user_id]['P2']
+    else:
+        score = 0
+        pass
+    
+    print(f"it's { answer if score else correct}!")
+
+    current_score[user_id].append((
+    score,
+    question,
+    answer,
+    force_parameters,
+    force_readiness
+    ))
+
+
+def phase_two_scoring(message):
+    user_id = message.chat.id
+    selection = simulation_parameters[user_id]['P2_raw']['selection']
+    results = simulation_parameters[user_id]['P2']
+    for alias in selection:
+        if alias in results:
+            print(f"{alias}: ---\n{results[alias]}")
+
+def p2_score_something(message, answer):
+    user_id = message.chat.id
+    current_score[user_id].append((
+    0,
+    "question",
+    answer,
+    force_parameters,   # type: ignore 
+    force_readiness     # type: ignore
+    ))
+
+    for score in current_score[user_id]:
+        if score[2] == 'testname':
+            pass
+
+
+# Shuffle questions:
+# def phase_two_shuffle_questions(questions:list[function]):
+#     return random.sample(questions, 2)
     # endregion
+
 # endregion
+
+def p2_send_score(message):
+    user_id = message.chat.id
+    message_text = "your scores have probably been recorded"
+    if gamemode[user_id] == 'test':
+        print(current_score[user_id])
+    
+
+    bot.edit_message_text(message_text, message.chat.id, message.id)
 
 # виклик АР підсумку
 @bot.callback_query_handler(func=lambda call: call.data == "AR_summary")

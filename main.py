@@ -1,5 +1,7 @@
 from bot import bot 
-from bot import handlers #importing handlers registers them
+#importing handlers registers them
+from bot import handlers
+# from bot import mtest_handlers #should not be active
 
 print(f"<info>: Telegram bot @{bot.get_me().username} {{{bot.bot_id}}} is initialized")
 

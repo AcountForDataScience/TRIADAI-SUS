@@ -6,5 +6,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# Playground file for manual testing
+# Playground files for manual testing
 bot/manual_test.py
+bot/mtest_handlers.py

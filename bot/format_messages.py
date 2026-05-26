@@ -385,7 +385,7 @@ def winp_score_answer(strategic_direction_name: str, simulation_parameters:dict[
 {f"According to integral criterion \\(WinProb\\_mean − Critical\\_tail\\) best course of action is: *{rec}*\\."}
 ~                     ~​
     """
-    print(message_text)
+    # print(message_text)
     return message_text
 
     # endregion
@@ -620,9 +620,9 @@ def regiment_parameters(selection: list[str], raw: bool = False):
     }
     message_text = ""
 
-    print("-----startmainloop")
+    # print("-----startmainloop")
     for regiment, alias in regiments.items():
-        print(regiment)
+        # print(regiment)
         if alias in selection:
             # print(f"displayin {regiment} parameters")
             if raw:

@@ -1,3 +1,21 @@
+# current_score[user_id].append((
+#     0, #score
+#     "test", #test name
+#     answer, #chosen answer
+#     simulation_parameters[user_id], #input parameters context
+#     results                         #simulation results
+# ))
+
+# # new version? 
+# current_score[user_id].append((
+# total_score:int,
+# test:str, # test name
+# answers: list, #answers list in form [(question, answer, correct answer), (que...), ...]
+                                        #(question, answer, correct answer) <- tuple
+# force_parameters,
+# force_readiness
+# ))
+
 # region save scores as dataframe
 Save_Dataframe = False
 if Save_Dataframe:  
