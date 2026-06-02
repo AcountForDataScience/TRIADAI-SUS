@@ -192,14 +192,13 @@ def phase_two_skip(message):
     strategic_direction_name.setdefault(user_id, 'test_direction')
     simulation_parameters.setdefault(user_id, {})
     custom_name.setdefault(user_id, 'test_user')
-    current_score[user_id] = []
-    current_score[user_id].append((
+    current_score[user_id] = [(
         user_id,
         custom_name[user_id],
         "discard_this_run_id",
         strategic_direction_name[user_id],
         "",
-        ))
+        )]
 
     message_text = "Please select the regiments required for this operation."
 
@@ -697,13 +696,10 @@ def simulation__conclude(message):
 
     user_id = message.chat.id
     score = 0
-    name = current_score[user_id][1]
-    direction = current_score[user_id][3]
-    run_id = current_score[user_id][2]
+    _, name, run_id, direction, datestamp = current_score[user_id][0]
     score_table[run_id] = current_score[user_id]
-    datestamp = current_score[user_id][4]
 
-    for i in range(5, len(current_score[user_id])):
+    for i in range(1, len(current_score[user_id])):
         score += current_score[user_id][i][0]
 
     if gamemode[user_id] == 'test':

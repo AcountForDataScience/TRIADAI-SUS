@@ -40,7 +40,6 @@ questions = {}
 # Prettify output text
 from bot.format_messages import (
     # Static Strings
-    message_bot_welcome,
     message_p1_explain,
     # Dynamic Strings
     format_phase1_message,
@@ -209,13 +208,13 @@ def handle_simulation_p1_confirm_parameters(call):
     timestamp = datetime.date.today()
     if gamemode[user_id] == 'test':
         print(f"run #{run_id} @{timestamp}")
-    current_score[user_id] = [
+    current_score[user_id] = [(
         user_id,
         user_name,
         run_id,
         strategic_direction_name[user_id],
         timestamp.isoformat() #in a better format
-    ]
+    )]
     if gamemode[user_id] == 'test':
         print(f"score record created for {run_id}:\n{current_score[call.from_user.id]}")
 
@@ -256,7 +255,7 @@ def simulation_phase_one_analyze(message):
 
     user_id = message.chat.id
 
-    for i in range(5, len(current_score[user_id])):
+    for i in range(1, len(current_score[user_id])):
         if current_score[user_id][i][1] == 'Sensitivity':
             Sens = True
         if current_score[user_id][i][1] == 'Win Probability':
@@ -309,6 +308,7 @@ def handle_p1_analysis(call):
         simulation_p1_sensitivity_analysis(call.message)
     elif callback == "Win Probability":
         simulation_p1_win_probability(call.message)
+    
     # scoring block
     elif callback == "Test CoA":
         simulation_p1_compare_coa(call.message)
@@ -317,8 +317,7 @@ def handle_p1_analysis(call):
     elif callback == "Test WinP":
         simulation_p1_test_winp(call.message)
     # end scoring block
-    elif callback == "AR Summary":
-        simulation_p1_AR_summary(call.message)
+    
     elif callback == "Conclude":
         simulation_p1_conclude(call.message)
     else:
@@ -327,7 +326,6 @@ def handle_p1_analysis(call):
     # print(f"processed callback: {callback}")
 
         # region Scoring Sensitivity
-# scoring #######################################
 def simulation_p1_test_sens(message):
     user_id = message.chat.id
     message_text = getmessage.sens_score_ask(strategic_direction_name[message.chat.id], simulation_results[message.chat.id]["P1"])
@@ -359,7 +357,6 @@ def simulation_p1_score_sens(message,answer):
         print(sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True))
     answer_key = sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True)[0][0]
 
-    #prettify
     def prettify(parameter):
         match parameter:
             case 'V' : return "Volatility"
@@ -513,8 +510,6 @@ def simulation_p1_compare_coa(message):
 
 def simulation_p1_sensitivity_analysis(message):
     #display CoA sensitivity analysis and all the buttons
-    global simulation_parameters
-    global strategic_direction_name
     user_id = message.chat.id
  
     w1,w2,w3 = simulation_parameters[user_id]['weights'].values()   
@@ -600,13 +595,10 @@ def simulation_p1_conclude(message):
 
     user_id = message.chat.id
     score = 0
-    name = current_score[user_id][1]
-    direction = current_score[user_id][3]
-    run_id = current_score[user_id][2]
+    _, name, run_id, direction, datestamp = current_score[user_id][0]
     score_table[run_id] = current_score[user_id]
-    datestamp = current_score[user_id][4]
 
-    for i in range(5, len(current_score[user_id])):
+    for i in range(1, len(current_score[user_id])):
         score += current_score[user_id][i][0]
 
     if gamemode[user_id] == 'test':
@@ -636,29 +628,24 @@ def handle_send_scores(call):
     run_id = call.data.split(':')[1]
     run_scores = score_table[run_id]
     score = 0
-    name = run_scores[1]
-    direction = run_scores[3]
-    datestamp = run_scores[4]
+    _, name, run_id, direction, datestamp = run_scores[0]
     print(run_scores)
 
-    for i in range(5, len(run_scores)):
+    for i in range(1, len(run_scores)):
         score += run_scores[i][0]
     
-    sim_params = run_scores[5][3]
+    sim_params = run_scores[1][3]
     IC,VL,TP,PT = sim_params['IC'],sim_params['VL'],sim_params['TP'],sim_params['PT']
-    # base_dri = (1 - IC.value) * 0.33 + VL.value * 0.33 + TP.value * 0.33 # workaround
-    # sim_data = run_scores[5][?]
-    # p90,mean,tail = sim_data[6],sim_data[5],
-    mc = P1_Monte_Carlo(IC,VL,TP)
+    mc = simulation_results[user_id]["P1_raw"]
     base,mean,p90,tail = mc["base_dri"],mc["mean_dri"],mc["p90"],mc["critical_tail"]
     
     # correct answers for WinProb and Sens analysis
-    if run_scores[5][1] == 'Sensitivity':
-        results,sens = run_scores[6][4],run_scores[5][4] 
-        ans_wp,ans_sens = run_scores[6][2],run_scores[5][2] 
+    if run_scores[1][1] == 'Sensitivity':
+        results,sens = run_scores[2][4],run_scores[2][4] 
+        ans_wp,ans_sens = run_scores[2][2],run_scores[1][2] 
     else: 
-        results,sens = run_scores[5][4],run_scores[6][4] 
-        ans_wp,ans_sens = run_scores[5][2],run_scores[6][2] 
+        results,sens = run_scores[1][4],run_scores[2][4] 
+        ans_wp,ans_sens = run_scores[1][2],run_scores[2][2] 
     wscores = {
         coa: results[coa]["WinProb_Mean"] - results[coa]["Critical_%"]
         for coa in results
