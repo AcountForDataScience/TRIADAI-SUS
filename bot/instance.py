@@ -11,12 +11,12 @@ else:
     load_dotenv()
     print(os.getenv('Test_env'))
 
-# allowed_gamemodes = [
-#         'default',
-#         'command',
-# ]
-# if os.getenv('Test_env'):
-#     allowed_gamemodes.append('test')
+allowed_gamemodes = [
+        'default',
+        'command',
+]
+if os.getenv('Test_env'):
+    allowed_gamemodes.append('test')
 
 #--------- API KEY ---------#
 print("acquiring tokens")

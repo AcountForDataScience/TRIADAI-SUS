@@ -1,7 +1,7 @@
 from bot import bot 
 #importing handlers registers them
-from bot import handlers
-# from bot import mtest_handlers #should not be active
+from bot import mtest_handlers #should not be active
+from bot import menu, phase_one, phase_two
 
 print(f"<info>: Telegram bot @{bot.get_me().username} {{{bot.bot_id}}} is initialized")
 

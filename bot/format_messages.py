@@ -329,6 +329,14 @@ Scenario keys: IC={IC_key}, Volatility={V_key}, Time={TP_key}
 # print("===Sesitivity Analysis fixed keys===")
 
 # region scoring
+    # region butons
+button_IC = 'Intel Confidence'
+button_VL = 'Volatility'
+button_TP = 'Time Pressure'
+    # endregion
+
+
+
     # region sensitivity
 def sens_score_ask(strategic_direction_name: str, P1_simulation_results: str):
     message_text = "".join([
