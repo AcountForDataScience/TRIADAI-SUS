@@ -208,13 +208,24 @@ def handle_simulation_p1_confirm_parameters(call):
     timestamp = datetime.date.today()
     if gamemode[user_id] == 'test':
         print(f"run #{run_id} @{timestamp}")
-    current_score[user_id] = [(
-        user_id,
-        user_name,
-        run_id,
-        strategic_direction_name[user_id],
-        timestamp.isoformat() #in a better format
-    )]
+    current_score[user_id] = { "Metadata": {
+            'user_id'   : user_id,
+            'user_name' : user_name,
+            'direction' : strategic_direction_name[user_id],
+            'run_id'    : run_id,
+            'datestamp' : timestamp.isoformat() #in a better format   
+        },
+        "Phase One": {
+            'IC'        : simulation_parameters[user_id]['IC'],
+            'VL'        : simulation_parameters[user_id]['VL'],
+            'TP'        : simulation_parameters[user_id]['TP'],
+            'PT'        : simulation_parameters[user_id]['PT'],
+            'base_dri'  : simulation_results[user_id]["P1_raw"]["base_dri"],
+            'mean_dri'  : simulation_results[user_id]["P1_raw"]["mean_dri"],
+            'p90_dri'   : simulation_results[user_id]["P1_raw"]["p90"],
+            'critical_tail':simulation_results[user_id]["P1_raw"]["critical_tail"],
+        }
+    }
     if gamemode[user_id] == 'test':
         print(f"score record created for {run_id}:\n{current_score[call.from_user.id]}")
 
@@ -255,11 +266,10 @@ def simulation_phase_one_analyze(message):
 
     user_id = message.chat.id
 
-    for i in range(1, len(current_score[user_id])):
-        if current_score[user_id][i][1] == 'Sensitivity':
-            Sens = True
-        if current_score[user_id][i][1] == 'Win Probability':
-            WinP = True
+    if 'Sensitivity' in current_score[user_id]:
+        Sens = True
+    if 'Win Probability' in current_score[user_id]:
+        WinP = True
 
     if not Sens and not WinP:
         markup.add(btn_Test_Sens, btn_Test_WinP)
@@ -275,13 +285,6 @@ def simulation_phase_one_analyze(message):
             message_id=message.id,
             reply_markup=markup
         )
-
-    # bot.edit_message_text(
-    #       chat_id=message.chat.id,
-    #       message_id=message.id,
-    #       text=f"Evaluating the \"{strategic_direction_name[message.chat.id]}\" strategic direction:\n\n {simulation_results[message.chat.id]["P1"]}",
-    #       reply_markup=markup
-    #   )
 
 
     # region Scoring
@@ -353,7 +356,7 @@ def simulation_p1_score_sens(message,answer):
     )
 
     if gamemode[user_id] == 'test':
-        print('sensitivity analysis p1#358')
+        print('sensitivity analysis p1#355')
         print(sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True))
     answer_key = sorted(sens["combined_score"].items(), key=lambda item: item[1], reverse=True)[0][0]
 
@@ -370,13 +373,12 @@ def simulation_p1_score_sens(message,answer):
         correct = 0
         score_text = f"your answer {prettify(answer)} is incorrect: it's {prettify(answer_key)}"
     
-    current_score[user_id].append((
-        correct,
-        "Sensitivity",
-        prettify(answer),
-        simulation_parameters[user_id],
-        sens
-        )) 
+    current_score[user_id]['Sensitivity'] = {
+        'score'     : correct,
+        'question'  : "Sensitivity",
+        'answer'    : prettify(answer),
+        'context'   : sens,
+    }
 
     influence_share = {k: round(v*100, 1) for k, v in sens["influence_share"].items()}
 
@@ -433,7 +435,7 @@ def simulation_p1_score_winp(message,answer):
     )
 
     if gamemode[user_id] == 'test':
-        print('win probability p1#439')
+        print('win probability p1#434')
         print(sorted(coa_wp.items(), key=lambda item: item[1]["WinProb_Mean"]-item[1]["Critical_%"], reverse=True))
 
     answer_key = sorted(coa_wp.items(), key=lambda item: item[1]["WinProb_Mean"]-item[1]["Critical_%"], reverse=True)[0][0]
@@ -445,13 +447,12 @@ def simulation_p1_score_winp(message,answer):
         correct = 0
         score_text = f"Chosen course of action {answer} is incorrect: {answer_key} has highest win probability"
  
-    current_score[user_id].append((
-        correct,
-        "Win Probability",
-        answer,
-        simulation_parameters[user_id],
-        coa_wp
-        ))
+    current_score[user_id]['Win Probability'] = {
+        'score'     : correct,
+        'question'  : "Win Probability",
+        'answer'    : answer,
+        'context'   : coa_wp,
+    }
 
     message_text = "\n".join([
         getmessage.winp_score_answer(strategic_direction_name[user_id],simulation_parameters[user_id],coa_wp,rec),
@@ -592,14 +593,20 @@ def simulation_p1_conclude(message):
     # pass
 
     # temporarily using this to display scores
-
     user_id = message.chat.id
+    run_id = current_score[user_id].get('Metadata').get('run_id')
+    datestamp = current_score[user_id].get('Metadata').get('datestamp')
+    name = current_score[user_id].get('Metadata').get('user_name')
+    direction = current_score[user_id].get('Metadata').get('direction')
     score = 0
-    _, name, run_id, direction, datestamp = current_score[user_id][0]
     score_table[run_id] = current_score[user_id]
 
-    for i in range(1, len(current_score[user_id])):
-        score += current_score[user_id][i][0]
+    # for v in current_score[user_id].values():
+    #     for k2,v2 in v.items():
+    #         if k2 == 'score':
+    #             score += v2
+
+    score = sum(v['score'] for v in current_score[user_id].values() if isinstance(v, dict) and 'score' in v)
 
     if gamemode[user_id] == 'test':
         print("Lookie here! Scores!")
@@ -621,6 +628,7 @@ You were playing as {name} on {direction} direction."
 
 #endregion
 
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_score"))
 def handle_send_scores(call):
     bot.answer_callback_query(call.id)
@@ -628,24 +636,23 @@ def handle_send_scores(call):
     run_id = call.data.split(':')[1]
     run_scores = score_table[run_id]
     score = 0
-    _, name, run_id, direction, datestamp = run_scores[0]
     print(run_scores)
 
-    for i in range(1, len(run_scores)):
-        score += run_scores[i][0]
+
+    datestamp   = run_scores['Metadata'].get('datestamp')
+    name        = run_scores['Metadata'].get('user_name')
+    direction   = run_scores['Metadata'].get('direction')
+
+    score = sum(v['score'] for v in current_score[user_id].values() if isinstance(v, dict) and 'score' in v)
     
-    sim_params = run_scores[1][3]
-    IC,VL,TP,PT = sim_params['IC'],sim_params['VL'],sim_params['TP'],sim_params['PT']
-    mc = simulation_results[user_id]["P1_raw"]
-    base,mean,p90,tail = mc["base_dri"],mc["mean_dri"],mc["p90"],mc["critical_tail"]
+    sim_params = run_scores["Phase One"]
+    IC,VL,TP,PT,base,mean,p90,tail = sim_params.values()
     
-    # correct answers for WinProb and Sens analysis
-    if run_scores[1][1] == 'Sensitivity':
-        results,sens = run_scores[2][4],run_scores[2][4] 
-        ans_wp,ans_sens = run_scores[2][2],run_scores[1][2] 
-    else: 
-        results,sens = run_scores[1][4],run_scores[2][4] 
-        ans_wp,ans_sens = run_scores[1][2],run_scores[2][2] 
+    ans_wp = run_scores["Win Probability"]['answer']
+    results = run_scores["Win Probability"]['context']
+    ans_sens = run_scores["Sensitivity"]['answer']
+    sens = run_scores["Sensitivity"]['context']
+
     wscores = {
         coa: results[coa]["WinProb_Mean"] - results[coa]["Critical_%"]
         for coa in results

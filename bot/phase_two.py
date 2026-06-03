@@ -5,27 +5,11 @@ import datetime
 
 # simulation functions
 from bot.simulations import (
-    # P1 Parameters
-    Intelligence_Confidence,
-    Volatility,
-    Time_Pressure,
-    Decision_Risk_Index, #output parameter
-    # P1 functions
-    P1_Shuffle,
-    P1_Monte_Carlo,
-    P1_Compare_CoA,
-    P1_WinProb,
-    P1_Sensitivity_Analysis,
     #P2 functions
     P2_Strategic_Readiness,
 )
-
-# print("\nLOOK HERE:")
-# print(Intelligence_Confidence.classify(0.7).display_name)
-
 # bot instance so I can use decorators 
 from bot.instance import bot
-# from bot.instance import bot, allowed_gamemodes
 
 # global variables
 # to do: replace with a database at some later point
@@ -44,15 +28,6 @@ from bot.state import (
 questions = {}
 
 # Prettify output text
-from bot.format_messages import (
-    # Static Strings
-    message_bot_welcome,
-    message_p1_explain,
-    # Dynamic Strings
-    format_phase1_message,
-    explain_monte_carlo_phase1,
-    format_coa_message,
-)
 import bot.format_messages as getmessage
 
 from bot.php_send import send_to_php, AR_format # stuff to send messages to AR goggles 
@@ -63,10 +38,6 @@ from bot.php_send import send_to_php, AR_format # stuff to send messages to AR g
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p2:"))
 def handle_phase_two_callbacks(call):
     callback = call.data.split(':')[1] #split the function and take second part only
-    # bot.answer_callback_query(call.id, text=f"Processing {callback}...")
-
-    # if gamemode[call.message.chat.id] == 'test':
-    #     print(callback)
 
     if callback == "select regiments":
         bot.edit_message_text("Please select the regiments required for this operation.",call.message.chat.id, call.message.id)
@@ -108,9 +79,9 @@ def handle_phase_two_callbacks(call):
         # phase_two_next(call.message)
         back = back_where[call.message.chat.id].pop()
         if gamemode[call.message.chat.id] == 'test':
-            print("back phase 2")
-            print(f"--> {back}")
-            print(f"back queue: \n{back_where[call.message.chat.id]}")
+                print("back phase 2")
+                print(f"--> {back}")
+                print(f"back queue: \n{back_where[call.message.chat.id]}")
         back(call.message)
     elif callback == "readiness":
         bot.answer_callback_query(call.id)
@@ -146,43 +117,13 @@ def handle_phase_two_callbacks(call):
     else:
         # Fallback or generic pass
         pass
-    # print("next")
-    # print(callback)
-    # if callback == 'score':
-    #     callback = call.data.split(':')[2:]
-    #     if gamemode[call.message.chat.id] == 'test':
-    #         print(callback)
-    #     if callback[0] == 'multi':
-    #         if callback[1] == 'sri':
-    #             bot.answer_callback_query(call.id)
-    #             # callback from:
-    #             # p2_score_sri_highest(call.message)
-    #             message = call.message
-    #             answer = callback[2]
-    #             question = ":".join(callback[0:1])
-
-    #             p2_record_score(message,question,answer)
-    #         elif callback[1] == 'critprob':
-    #             bot.answer_callback_query(call.id)
-    #             # callback from:
-    #             # p2_score_crit_worst(call.message)
-    #     elif callback[0] == 'single':
-    #         if callback[1] == 'sri':
-    #             bot.answer_callback_query(call.id)
-    #             # callback from:
-    #             # p2_score_sri_value(call.message)
-    #         elif callback[1] == 'critprob':
-    #             bot.answer_callback_query(call.id)
-    #             # callback from:
-    #             # p2_score_crit_value(call.message)
-
 
     bot.answer_callback_query(call.id, text=f"Processed {callback}...")
     if gamemode[call.message.chat.id] == 'test':
         # print(callback)
         print(f"Universal P2 Handler caught: {callback}")
 
-
+#region skip phase2
 @bot.message_handler(commands=["phasetwo"])
 def phase_two_skip(message):
     user_id = message.chat.id
@@ -192,13 +133,14 @@ def phase_two_skip(message):
     strategic_direction_name.setdefault(user_id, 'test_direction')
     simulation_parameters.setdefault(user_id, {})
     custom_name.setdefault(user_id, 'test_user')
-    current_score[user_id] = [(
-        user_id,
-        custom_name[user_id],
-        "discard_this_run_id",
-        strategic_direction_name[user_id],
-        "",
-        )]
+    current_score[user_id] = { "Metadata": {
+            'user_id'   : user_id,
+            'user_name' : custom_name[user_id],
+            'direction' : strategic_direction_name[user_id],
+            'run_id'    : "discard_this_run_id",
+            'datestamp' : "" #in a better format   
+        },
+    }
 
     message_text = "Please select the regiments required for this operation."
 
@@ -217,7 +159,7 @@ def phase_two_skip(message):
     }, row_width=2)
 
     bot.send_message(message.chat.id, message_text, reply_markup=markup)
-
+#endregion
 
 
 def phase_two_select_regiments(message, selection: list[str]):
@@ -366,20 +308,6 @@ def p2_next_question(message):
     next(message)
 
 
-#idk really what to do
-# let's try 
-# if two or more: 
-# which force has highest mean SRI [force a] [force b] [force c] [force d] [check force details]
-# Which force has highest critical probability [force a] [force b] [force c] [force d] [check force details]
-# which force has lowest combined readiness score (p90 sri - crisis probab)? maybe not.
-# if one:
-# for the * force, what is the readiness level? [high] [maneuver] [crisis] [critical] 
-# What is the crisis probability? [<20%] [20%-99%] [already in crisis].
-
-        # region P2:score:pseudo
-        # if two or more: 
-
-        # which force has highest mean SRI [force a] [force b] [force c] [force d] [check force details]
 def p2_score_sri_highest(message):
     user_id = message.chat.id
     selection = simulation_parameters[user_id]['P2_raw']['selection']
@@ -642,15 +570,30 @@ def p2_record_score(message, question, answer):
         score = 0
         pass
     
-    print(f"it's { answer if score else correct}!")
+    # if gamemode[user_id] == 'test':
+    print(f"{question}: it's { answer if score else correct}!")
 
-    current_score[user_id].append((
-    score,
-    question,
-    answer,
-    force_parameters,
-    force_readiness
-    ))
+    # current_score[user_id].append((
+    # score,
+    # question,
+    # answer,
+    # force_parameters,
+    # force_readiness
+    # ))
+
+    current_score[user_id][question] = {
+        'score'     : score,
+        'question'  : question,
+        'answer'    : answer,
+        'context'   : force_readiness,
+        'answer_key': correct, #correct answer
+    }
+    # score,
+    # question,
+    # answer,
+    # force_parameters,
+    # force_readiness
+    # ))
 
 
 def phase_two_scoring(message):
@@ -660,20 +603,6 @@ def phase_two_scoring(message):
     for alias in selection:
         if alias in results:
             print(f"{alias}: ---\n{results[alias]}")
-
-def p2_score_something(message, answer):
-    user_id = message.chat.id
-    current_score[user_id].append((
-    0,
-    "question",
-    answer,
-    force_parameters,   # type: ignore 
-    force_readiness     # type: ignore
-    ))
-
-    for score in current_score[user_id]:
-        if score[2] == 'testname':
-            pass
 
 
 # Shuffle questions:
@@ -689,69 +618,36 @@ def p2_send_score(message):
     if gamemode[user_id] == 'test':
         print(current_score[user_id])
     
-
-    bot.edit_message_text(message_text, message.chat.id, message.id)
-
-def simulation__conclude(message):
-
-    user_id = message.chat.id
-    score = 0
-    _, name, run_id, direction, datestamp = current_score[user_id][0]
-    score_table[run_id] = current_score[user_id]
-
-    for i in range(1, len(current_score[user_id])):
-        score += current_score[user_id][i][0]
-
-    if gamemode[user_id] == 'test':
-        print("Lookie here! Scores!")
-        print(current_score[user_id])
     
-    if gamemode[user_id] in ('command', 'test'):
-        message_text = f"Total score is {score} points for run ID: `{run_id}` ({datestamp})\n\
-You were playing as {name} on {direction} direction."
-    else:
-        message_text = "your scores were recorded"
-    
-    # bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id)
-    send_score_call_id = ":".join(['send_score',run_id])
     markup = quick_markup({
-        'Proceed to Phase 2' : {'callback_data': 'p2:select regiments'},
-        'Send scores' : {'callback_data': send_score_call_id}, 
-    }, row_width = 1)
-    bot.edit_message_text(message_text,chat_id = message.chat.id, message_id = message.id,reply_markup=markup)
+        'Send scores': {'callback_data':'phasetwo'},
+        'Complete': {'callback_data':'complete'},
+    })
+    bot.edit_message_text(message_text, message.chat.id, message.id, reply_markup=markup)
 
-#endregion
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("send_score"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("phasetwo"))
 def handle_send_scores(call):
     bot.answer_callback_query(call.id)
     user_id = call.message.chat.id
-    run_id = call.data.split(':')[1]
-    run_scores = score_table[run_id]
-    score = 0
-    name = run_scores[1]
-    direction = run_scores[3]
-    datestamp = run_scores[4]
-    print(run_scores)
+    # from rich import print as pprint
+    # pprint(current_score[user_id])
 
-    for i in range(5, len(run_scores)):
-        score += run_scores[i][0]
+    run_scores = current_score[user_id]
+
+    datestamp   = run_scores['Metadata'].get('datestamp')
+    name        = run_scores['Metadata'].get('user_name')
+    direction   = run_scores['Metadata'].get('direction')
+
+    score = sum(v['score'] for v in current_score[user_id].values() if isinstance(v, dict) and 'score' in v)
     
-    sim_params = run_scores[5][3]
-    IC,VL,TP,PT = sim_params['IC'],sim_params['VL'],sim_params['TP'],sim_params['PT']
-    # base_dri = (1 - IC.value) * 0.33 + VL.value * 0.33 + TP.value * 0.33 # workaround
-    # sim_data = run_scores[5][?]
-    # p90,mean,tail = sim_data[6],sim_data[5],
-    mc = P1_Monte_Carlo(IC,VL,TP)
-    base,mean,p90,tail = mc["base_dri"],mc["mean_dri"],mc["p90"],mc["critical_tail"]
-    
-    # correct answers for WinProb and Sens analysis
-    if run_scores[5][1] == 'Sensitivity':
-        results,sens = run_scores[6][4],run_scores[5][4] 
-        ans_wp,ans_sens = run_scores[6][2],run_scores[5][2] 
-    else: 
-        results,sens = run_scores[5][4],run_scores[6][4] 
-        ans_wp,ans_sens = run_scores[5][2],run_scores[6][2] 
+    sim_params = run_scores["Phase One"]
+    IC,VL,TP,PT,base,mean,p90,tail = sim_params.values()
+
+    ans_wp = run_scores["Win Probability"]['answer']
+    results = run_scores["Win Probability"]['context']
+    ans_sens = run_scores["Sensitivity"]['answer']
+    sens = run_scores["Sensitivity"]['context']
+
     wscores = {
         coa: results[coa]["WinProb_Mean"] - results[coa]["Critical_%"]
         for coa in results
@@ -777,6 +673,18 @@ def handle_send_scores(call):
         "Sensitivity_Analysis": Sens,
         "SA_answered"      : ans_sens,
     }
+
+    del run_scores["Metadata"]
+    del run_scores["Phase One"]
+    del run_scores["Win Probability"]
+    del run_scores["Sensitivity"]
+
+    for key in run_scores:
+        if key not in parameters:
+            pkey = key.replace(' ','_')
+            print(f"{key}, {pkey}, ")
+            parameters[pkey] = run_scores[key].get("answer_key")
+            parameters[pkey + "_ans"] = run_scores[key].get("answer")
     if gamemode[user_id] == 'test':
         print(AR_format(parameters))
     send_to_php(AR_format(parameters))
